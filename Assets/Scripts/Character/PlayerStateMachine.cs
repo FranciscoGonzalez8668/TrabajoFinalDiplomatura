@@ -51,7 +51,11 @@ public class PlayerStateMachine : MonoBehaviour
         {
             case PlayerState.Idle:
             case PlayerState.Running:
-                if (!motor.IsGrounded)
+                if (wallRun.IsWallRunning)
+                {
+                    SetState(PlayerState.WallRunning);
+                }
+                else if (!motor.IsGrounded)
                 {
                     SetState(PlayerState.Falling);
                 }
@@ -66,20 +70,11 @@ public class PlayerStateMachine : MonoBehaviour
                 break;
             case PlayerState.Jumping:
                 if(motor.Velocity.y < 0f)
-                {
                     SetState(PlayerState.Falling);
-                }
-                if(motor.IsTouchingWall && !motor.IsGrounded)
-                {
-                    SetState(PlayerState.WallRunning);
-                }
                 break;
             case PlayerState.Falling:
                 if (motor.IsGrounded)
                     SetState(PlayerState.Idle);
-
-                if (motor.IsTouchingWall && !motor.IsGrounded)
-                    SetState(PlayerState.WallRunning);
                 break;
 
             case PlayerState.WallRunning:
@@ -90,7 +85,6 @@ public class PlayerStateMachine : MonoBehaviour
                     SetState(PlayerState.Falling);
                     else if(wallRun.JumpedFromWall)
                     {
-                    wallRun.ResetJumpFlag();
                     SetState(PlayerState.Jumping);
                 }
                 break;

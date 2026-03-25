@@ -11,6 +11,7 @@ public class WallRunAbility : MonoBehaviour
     public bool IsWallRunning {get; private set;}
 
     public bool JumpedFromWall {get; private set;}
+    private bool timerExpired;
 
     public void ResetJumpFlag()
     {
@@ -18,16 +19,29 @@ public class WallRunAbility : MonoBehaviour
     }
 
     private float wallRunTimer;
-    
+    private bool hasLeftGround;
     private Vector3 wallRunDirection;
 
     void Update()
     {
+        if (motor.IsTouchingWall && !motor.IsGrounded && input.JumpPressed)
+        {
+            WallJump();
+            return;
+        }
+
         if (IsWallRunning)
         {
             UpdateWallRun();
-        }else
+        }
+        else
         {
+            if (JumpedFromWall && !motor.IsTouchingWall)
+                ResetJumpFlag();
+
+            if (timerExpired && !motor.IsTouchingWall)
+                timerExpired = false;
+
             TryStartWallRun();
         }
     }
@@ -36,10 +50,13 @@ public class WallRunAbility : MonoBehaviour
     void TryStartWallRun()
     {
         //Conditions to start wall run
+        bool isLateralWall = Mathf.Abs(Vector3.Dot(motor.WallNormal, transform.right)) > 0.5f;
+
         if(!input.WallRunHeld||
         !motor.IsTouchingWall||
-        motor.IsGrounded||
-        !HasEnoughtHeight()) return;
+        !motor.IsGrounded||
+        !isLateralWall||
+        timerExpired) return;
 
         StartWallRun();
 
@@ -51,24 +68,27 @@ public class WallRunAbility : MonoBehaviour
     {
         IsWallRunning = true;
         wallRunTimer = data.wallRunDuration;
+        hasLeftGround = false;
+        motor.OverrideGravity = true;
 
         //Determine wall run direction
         wallRunDirection = CalculateWallRunDirection();
+
+        // Impulso vertical único para crear la parábola (solo si no viene subiendo más rápido ya)
+        if (motor.VerticalVelocity < data.wallRunUpBoost)
+            motor.SetVerticalVelocity(data.wallRunUpBoost);
     }
 
     void UpdateWallRun()
     {
         wallRunTimer -= Time.deltaTime;
 
-        if (!input.WallRunHeld ||!motor.IsTouchingWall || motor.IsGrounded || wallRunTimer <= 0f)
-        {
-            StopWallRun();
-            return;
-        }
+        if (!motor.IsGrounded) hasLeftGround = true;
 
-        if(input.JumpPressed)
+        if (!input.WallRunHeld || !motor.IsTouchingWall || wallRunTimer <= 0f || (hasLeftGround && motor.IsGrounded))
         {
-            WallJump();
+            if (wallRunTimer <= 0f) timerExpired = true;
+            StopWallRun();
             return;
         }
 
@@ -78,11 +98,6 @@ public class WallRunAbility : MonoBehaviour
 
         motor.ApplyReduceGravity(data.wallRunGravity);
 
-        float verticalInput = input.MoveInput.y;
-        if(verticalInput > 0.1f)
-        {
-            motor.SetVerticalVelocity(data.wallRunSpeed * 0.6f);
-        }
     }
 
     void WallJump()
@@ -91,13 +106,28 @@ public class WallRunAbility : MonoBehaviour
         Vector3 wallNormal = motor.WallNormal;
         StopWallRun();
 
-        // Impulso horizontal — solo XZ, sin Y
-        Vector3 horizontalImpulse = new Vector3(wallNormal.x, 0f, wallNormal.z).normalized;
-        motor.SetHorizontalVelocity(horizontalImpulse,data.wallJumpForce);
+        // Calculamos componente paralela a la pared en la velocidad actual
+        Vector3 wallOut = new Vector3(wallNormal.x, 0f, wallNormal.z).normalized;
+        Vector3 horizontalVelocity = motor.Velocity;
+        Vector3 parallelVelocity = horizontalVelocity - Vector3.Dot(horizontalVelocity, wallOut) * wallOut;
 
-        // Impulso vertical — misma fórmula que el salto normal
+        Vector3 horizontalImpulse;
+        if (parallelVelocity.magnitude > 1f)
+        {
+            // Tiene velocidad paralela (wall run o movimiento lateral) — mezcla normal + dirección paralela
+            horizontalImpulse = (wallOut * data.wallJumpForce + parallelVelocity.normalized * data.wallJumpSpeed).normalized;
+        }
+        else
+        {
+            // Sin velocidad paralela — salta perpendicular a la pared
+            horizontalImpulse = wallOut;
+        }
+
+        motor.SetHorizontalVelocity(horizontalImpulse, data.wallJumpSpeed);
+
+        // Impulso vertical — arco bajo para sensación de parkour
         float gravity = (float)Physics.gravity.y;
-        float jumpVelocity = 2f * Mathf.Abs(gravity) * motor.GravityScale * data.jumpHeight;
+        float jumpVelocity = 2f * Mathf.Abs(gravity) * motor.GravityScale * data.wallJumpHeight;
         motor.SetVerticalVelocity(Mathf.Sqrt(jumpVelocity));
 
         JumpedFromWall = true;
@@ -110,6 +140,7 @@ public class WallRunAbility : MonoBehaviour
     {
         IsWallRunning = false;
         wallRunTimer = 0f;
+        motor.OverrideGravity = false;
     }
 
     //Calculate wall run direction
@@ -129,14 +160,6 @@ public class WallRunAbility : MonoBehaviour
         return wallParallel;
     }
 
-    //Check if the player has enough height to start wall run
-
-    bool HasEnoughtHeight()
-    {
-
-        return !Physics.Raycast(transform.position,Vector3.down,data.minWallRunHeight);
-
-    }
     
 
 

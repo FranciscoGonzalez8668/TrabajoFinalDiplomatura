@@ -12,7 +12,9 @@ public class CharacterMotor : MonoBehaviour
     public bool IsGrounded {get; private set;}
     public bool IsTouchingWall {get; private set;}
     public Vector3 WallNormal {get; private set;}
-    public Vector3  Velocity =>velocity;
+    public Vector3 Velocity => velocity;
+    public float VerticalVelocity => verticalVelocity;
+    public bool OverrideGravity { get; set; }
     public float GravityScale => data.gravityScale;
 
 
@@ -60,34 +62,25 @@ public class CharacterMotor : MonoBehaviour
 
     void CheckWall()
     {
-        bool hitRight = Physics.Raycast(
-            transform.position,
-            transform.right,
-            out RaycastHit hitInforRight, data.wallDetectionDistance
-        );
+        Vector3 diagRight = (transform.forward + transform.right).normalized;
+        Vector3 diagLeft  = (transform.forward - transform.right).normalized;
 
-        bool hitLeft = Physics.Raycast(
-            transform.position,
-            -transform.right,
-            out RaycastHit hitInforLeft, data.wallDetectionDistance
-        );
-
-        if(hitRight)
+        // Prioridad: laterales → diagonales → frontal
+        RaycastHit hit;
+        if      (Physics.Raycast(transform.position,  transform.right,   out hit, data.wallDetectionDistance) ||
+                 Physics.Raycast(transform.position, -transform.right,   out hit, data.wallDetectionDistance) ||
+                 Physics.Raycast(transform.position,  diagRight,         out hit, data.wallDetectionDistance) ||
+                 Physics.Raycast(transform.position,  diagLeft,          out hit, data.wallDetectionDistance) ||
+                 Physics.Raycast(transform.position,  transform.forward, out hit, data.wallDetectionDistance))
         {
             IsTouchingWall = true;
-            WallNormal = hitInforRight.normal;
-        }
-        else if(hitLeft)
-        {
-            IsTouchingWall = true;
-            WallNormal = hitInforLeft.normal;
+            WallNormal = hit.normal;
         }
         else
         {
             IsTouchingWall = false;
             WallNormal = Vector3.zero;
         }
-
     }
 
 
@@ -206,7 +199,8 @@ public class CharacterMotor : MonoBehaviour
 
     void ApplyMovement()
     {
-        ApplyGravity();
+        if (!OverrideGravity)
+            ApplyGravity();
         Vector3 finalMove = velocity + Vector3.up * verticalVelocity;
         cc.Move(finalMove * Time.deltaTime);
     }

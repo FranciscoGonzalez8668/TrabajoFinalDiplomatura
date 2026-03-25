@@ -17,6 +17,7 @@ public class PlayerData : ScriptableObject
     public float jumpBufferTime = 0.12f;
     public float wallJumpSpeed = 7f;
     public float wallJumpForce = 3f;
+    public float wallJumpHeight = 1.5f;
 
     [Header("Gravity")]
     public float gravityScale = 2.5f;
@@ -30,6 +31,7 @@ public class PlayerData : ScriptableObject
     public float wallDetectionDistance = 0.6f;
     public float wallRunGravity = 0.3f;
     public float minWallRunHeight = 0.5f;
+    public float wallRunUpBoost = 3f;
 
 
     [Header("Time Global")]

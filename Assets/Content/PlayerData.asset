@@ -18,12 +18,16 @@ MonoBehaviour:
   jumpHeight: 5
   coyoteTime: 0.15
   jumpBufferTime: 0.12
+  wallJumpSpeed: 15
+  wallJumpForce: 15
+  wallJumpHeight: 1.5
   gravityScale: 2.5
-  fallMultiplier: 1.5
+  fallMultiplier: 2
   maxFallSpeed: 20
   wallRunSpeed: 8
-  wallRunDuration: 1.5
+  wallRunDuration: 3
   wallDetectionDistance: 0.6
-  wallRunGravity: 0.3
+  wallRunGravity: 0.1
   minWallRunHeight: 0.5
+  wallRunUpBoost: 5
   globalTimerDuration: 120
