@@ -20,7 +20,8 @@ public class PlayerStateMachine : MonoBehaviour
         Running,
         Jumping,
         Falling,
-        WallRunning
+        WallRunning,
+        Sprinting
     }
 
     private Vector3 moveDirection;
@@ -30,6 +31,8 @@ public class PlayerStateMachine : MonoBehaviour
         UpdateMoveDirection();
         UpdateState();
         HandleState();
+        Debug.Log($"State: {CurrentState} | Speed: {motor.Velocity.magnitude:F2}");
+
     }
 
 
@@ -51,6 +54,7 @@ public class PlayerStateMachine : MonoBehaviour
         {
             case PlayerState.Idle:
             case PlayerState.Running:
+            case PlayerState.Sprinting:
                 if (wallRun.IsWallRunning)
                 {
                     SetState(PlayerState.WallRunning);
@@ -58,6 +62,10 @@ public class PlayerStateMachine : MonoBehaviour
                 else if (!motor.IsGrounded)
                 {
                     SetState(PlayerState.Falling);
+                }
+                else if (input.MoveInput.magnitude > 0.1f && input.SprintHeld)
+                {
+                    SetState(PlayerState.Sprinting);
                 }
                 else if (input.MoveInput.magnitude > 0.1f)
                 {
@@ -69,24 +77,30 @@ public class PlayerStateMachine : MonoBehaviour
                 }
                 break;
             case PlayerState.Jumping:
-                if(motor.Velocity.y < 0f)
+                if(motor.VerticalVelocity < 0f)
                     SetState(PlayerState.Falling);
                 break;
             case PlayerState.Falling:
                 if (motor.IsGrounded)
-                    SetState(PlayerState.Idle);
+
+                    if (input.MoveInput.magnitude > 0.1f && input.SprintHeld)
+                        SetState(PlayerState.Sprinting);
+                    else if (input.MoveInput.magnitude > 0.1f)
+                        SetState(PlayerState.Running);
+                    else
+                        SetState(PlayerState.Idle);
                 break;
 
             case PlayerState.WallRunning:
-                // Salimos del wall run si: toca el suelo, se aleja de la pared, o salta
-                if (motor.IsGrounded)
-                    SetState(PlayerState.Idle);
-                else if (!motor.IsTouchingWall)
-                    SetState(PlayerState.Falling);
-                    else if(wallRun.JumpedFromWall)
-                    {
-                    SetState(PlayerState.Jumping);
+                if (!wallRun.IsWallRunning)
+                {
+                    if (motor.IsGrounded)
+                        SetState(PlayerState.Idle);
+                    else
+                        SetState(PlayerState.Falling);
                 }
+                else if (wallRun.JumpedFromWall)
+                    SetState(PlayerState.Jumping);
                 break;
         }
         if (input.JumpPressed)
@@ -108,10 +122,13 @@ public class PlayerStateMachine : MonoBehaviour
         switch(CurrentState)
         {
             case PlayerState.Idle:
-                motor.Decelerate();
+                motor.Stop();
                 break;
             case PlayerState.Running:
                 motor.Move(moveDirection, data.moveSpeed);
+                break;
+            case PlayerState.Sprinting:
+                motor.Move(moveDirection, data.sprintSpeed, data.sprintAcceleration);
                 break;
             case PlayerState.Jumping:
 

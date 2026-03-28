@@ -10,6 +10,11 @@ public class PlayerData : ScriptableObject
     public float acceleration = 20f;
     public float deceleration = 15f;
 
+    [Header("Sprint")]
+    public float sprintSpeed = 10f;
+    public float sprintAcceleration = 8;
+
+
     [Header("Jump")]
 
     public float jumpHeight = 5f;

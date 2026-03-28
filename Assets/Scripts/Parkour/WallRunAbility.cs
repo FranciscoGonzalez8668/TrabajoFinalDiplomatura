@@ -52,7 +52,7 @@ public class WallRunAbility : MonoBehaviour
         //Conditions to start wall run
         bool isLateralWall = Mathf.Abs(Vector3.Dot(motor.WallNormal, transform.right)) > 0.5f;
 
-        if(!input.WallRunHeld||
+        if(!input.SprintHeld||
         !motor.IsTouchingWall||
         !motor.IsGrounded||
         !isLateralWall||
@@ -77,6 +77,8 @@ public class WallRunAbility : MonoBehaviour
         // Impulso vertical único para crear la parábola (solo si no viene subiendo más rápido ya)
         if (motor.VerticalVelocity < data.wallRunUpBoost)
             motor.SetVerticalVelocity(data.wallRunUpBoost);
+        
+        motor.SetHorizontalVelocity(wallRunDirection, motor.Velocity.magnitude); // ← esta línea
     }
 
     void UpdateWallRun()
@@ -85,7 +87,7 @@ public class WallRunAbility : MonoBehaviour
 
         if (!motor.IsGrounded) hasLeftGround = true;
 
-        if (!input.WallRunHeld || !motor.IsTouchingWall || wallRunTimer <= 0f || (hasLeftGround && motor.IsGrounded))
+        if (!input.SprintHeld || !motor.IsTouchingWall || wallRunTimer <= 0f || (hasLeftGround && motor.IsGrounded))
         {
             if (wallRunTimer <= 0f) timerExpired = true;
             StopWallRun();

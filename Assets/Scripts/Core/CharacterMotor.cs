@@ -126,6 +126,16 @@ public class CharacterMotor : MonoBehaviour
             data.acceleration * Time.deltaTime
         );
     }
+    public void Move(Vector3 direction, float speed, float customAcceleration)
+    {
+        Vector3 targetVelocity = direction * speed;
+        velocity = Vector3.MoveTowards(
+            velocity,
+            targetVelocity,
+            customAcceleration * Time.deltaTime
+        );
+    }
+
 
     public void Decelerate()
     {
@@ -134,6 +144,11 @@ public class CharacterMotor : MonoBehaviour
             Vector3.zero,
             data.deceleration * Time.deltaTime
         );
+    }
+
+    public void Stop()
+    {
+        velocity = Vector3.zero;
     }
 
     public bool TryJump()
