@@ -15,6 +15,8 @@ MonoBehaviour:
   moveSpeed: 7
   acceleration: 20
   deceleration: 15
+  sprintSpeed: 10
+  sprintAcceleration: 30
   jumpHeight: 5
   coyoteTime: 0.15
   jumpBufferTime: 0.12
@@ -24,10 +26,18 @@ MonoBehaviour:
   gravityScale: 2.5
   fallMultiplier: 2
   maxFallSpeed: 20
-  wallRunSpeed: 8
-  wallRunDuration: 3
+  wallRunSpeed: 10
+  wallRunDuration: 1.8
   wallDetectionDistance: 0.6
   wallRunGravity: 0.1
   minWallRunHeight: 0.5
-  wallRunUpBoost: 5
+  wallRunUpBoost: 3
+  ledgeDetectionDistance: 0.8
+  ledgeGrabReach: 1.5
+  ledgeCheckHeightOffse: 0.5
+  lodgeClimbSpeed: 4
+  ledgeHangTimeout: 3
+  ledgeCheckHeightOffset: 0.5
+  ledgeClimbSpeed: 4
+  ledgeClimbDuration: 0.4
   globalTimerDuration: 120
