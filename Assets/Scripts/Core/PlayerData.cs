@@ -1,3 +1,4 @@
+using System.Data;
 using UnityEngine;
 
 
@@ -13,7 +14,6 @@ public class PlayerData : ScriptableObject
     [Header("Sprint")]
     public float sprintSpeed = 10f;
     public float sprintAcceleration = 8;
-
 
     [Header("Jump")]
 
@@ -37,6 +37,19 @@ public class PlayerData : ScriptableObject
     public float wallRunGravity = 0.3f;
     public float minWallRunHeight = 0.5f;
     public float wallRunUpBoost = 3f;
+
+    [Header("Ledge Grab")]
+    public float ledgeDetectionDistance = 0.8f;
+    public float ledgeGrabReach = 1.5f;
+
+    public float ledgeCheckHeightOffse = 0.5f;
+    public float lodgeClimbSpeed = 4f;
+    public float ledgeHangTimeout =3f;
+    public float ledgeCheckHeightOffset = 0.5f;
+    public float ledgeClimbSpeed = 4f;
+
+    public float ledgeClimbDuration = 0.4f;
+
 
 
     [Header("Time Global")]

@@ -12,8 +12,7 @@ public class InputHandler : MonoBehaviour
 
     public bool SprintHeld  {get; private set;}
 
-
-
+    public bool ClimbPressed {get; private set;}
 
     void Update()
     {
@@ -26,6 +25,7 @@ public class InputHandler : MonoBehaviour
         JumpPressed = Input.GetButtonDown("Jump");
         JumpHeld = Input.GetButton("Jump");
         SprintHeld = Input.GetKey(KeyCode.LeftShift);
+        ClimbPressed = Input.GetKeyDown(KeyCode.LeftShift);
 
         //SlidePressed = Input.GetButtonDown("Slide");
         SlidePressed = false;

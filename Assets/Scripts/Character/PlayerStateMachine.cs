@@ -10,6 +10,8 @@ public class PlayerStateMachine : MonoBehaviour
     [SerializeField] private InputHandler input;
     [SerializeField] private CameraController cameraController;
 
+    [SerializeField] private LedgeGrabAbility ledgeGrab;
+
     [SerializeField] private WallRunAbility wallRun;
 
     public PlayerState CurrentState {get; private set;}
@@ -21,7 +23,8 @@ public class PlayerStateMachine : MonoBehaviour
         Jumping,
         Falling,
         WallRunning,
-        Sprinting
+        Sprinting,
+        LedgeGrabbing
     }
 
     private Vector3 moveDirection;
@@ -31,7 +34,6 @@ public class PlayerStateMachine : MonoBehaviour
         UpdateMoveDirection();
         UpdateState();
         HandleState();
-        Debug.Log($"State: {CurrentState} | Speed: {motor.Velocity.magnitude:F2}");
 
     }
 
@@ -79,6 +81,8 @@ public class PlayerStateMachine : MonoBehaviour
             case PlayerState.Jumping:
                 if(motor.VerticalVelocity < 0f)
                     SetState(PlayerState.Falling);
+                else if( ledgeGrab.IsLedgeGrabbing)
+                    SetState(PlayerState.LedgeGrabbing);
                 break;
             case PlayerState.Falling:
                 if (motor.IsGrounded)
@@ -89,6 +93,8 @@ public class PlayerStateMachine : MonoBehaviour
                         SetState(PlayerState.Running);
                     else
                         SetState(PlayerState.Idle);
+                else if (ledgeGrab.IsLedgeGrabbing)
+                    SetState(PlayerState.LedgeGrabbing);
                 break;
 
             case PlayerState.WallRunning:
@@ -101,6 +107,11 @@ public class PlayerStateMachine : MonoBehaviour
                 }
                 else if (wallRun.JumpedFromWall)
                     SetState(PlayerState.Jumping);
+                break;
+            case PlayerState.LedgeGrabbing:
+                if(!ledgeGrab.IsLedgeGrabbing){
+                    SetState(PlayerState.Falling);
+                }
                 break;
         }
         if (input.JumpPressed)
@@ -149,6 +160,9 @@ public class PlayerStateMachine : MonoBehaviour
             case PlayerState.WallRunning:
                 // Por ahora solo frena — WallRunAbility toma el control después
                 motor.Decelerate();
+                break;
+            case PlayerState.LedgeGrabbing:
+                // LedgeGrabAbility toma el control completo, no hace falta nada acá por ahora
                 break;
         }
     }

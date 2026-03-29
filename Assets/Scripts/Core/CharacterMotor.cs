@@ -16,6 +16,8 @@ public class CharacterMotor : MonoBehaviour
     public float VerticalVelocity => verticalVelocity;
     public bool OverrideGravity { get; set; }
     public float GravityScale => data.gravityScale;
+    public float HalfHeight => cc.height * 0.5f;
+    public float FeetY => transform.position.y + cc.center.y - cc.height * 0.5f;
 
 
     //Private State
@@ -134,6 +136,20 @@ public class CharacterMotor : MonoBehaviour
             targetVelocity,
             customAcceleration * Time.deltaTime
         );
+    }
+
+    public void MoveRaw(Vector3 motion)
+    {
+        cc.Move(motion);
+    }
+
+    // Moves player upward until feet reach targetFeetY. Returns true when reached.
+    public bool ClimbVertical(float targetFeetY, float speed)
+    {
+        float remaining = targetFeetY - FeetY;
+        if (remaining <= 0.05f) return true;
+        cc.Move(Vector3.up * Mathf.Min(speed * Time.deltaTime, remaining));
+        return false;
     }
 
 
