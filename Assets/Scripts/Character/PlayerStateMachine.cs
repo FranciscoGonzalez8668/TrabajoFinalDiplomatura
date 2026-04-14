@@ -1,20 +1,15 @@
-using System.Runtime.ExceptionServices;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public class PlayerStateMachine : MonoBehaviour
 {
-
     [SerializeField] private PlayerData data;
     [SerializeField] private CharacterMotor motor;
     [SerializeField] private InputHandler input;
     [SerializeField] private CameraController cameraController;
-
     [SerializeField] private LedgeGrabAbility ledgeGrab;
-
     [SerializeField] private WallRunAbility wallRun;
 
-    public PlayerState CurrentState {get; private set;}
+    public PlayerState CurrentState { get; private set; }
 
     public enum PlayerState
     {
@@ -29,151 +24,169 @@ public class PlayerStateMachine : MonoBehaviour
 
     private Vector3 moveDirection;
 
-    void Update()
+    private void Update()
     {
         UpdateMoveDirection();
         UpdateState();
         HandleState();
-
     }
 
-
-
-    //Movement Direction
-
-    void UpdateMoveDirection()
+    private void UpdateMoveDirection()
     {
         Vector3 forward = cameraController.CameraForward * input.MoveInput.y;
         Vector3 right = cameraController.CameraRight * input.MoveInput.x;
-
         moveDirection = (forward + right).normalized;
     }
 
-
-    void UpdateState ()
+    private void UpdateState()
     {
+        if (TryHandleJump())
+        {
+            return;
+        }
+
         switch (CurrentState)
         {
             case PlayerState.Idle:
             case PlayerState.Running:
             case PlayerState.Sprinting:
-                if (wallRun.IsWallRunning)
-                {
-                    SetState(PlayerState.WallRunning);
-                }
-                else if (!motor.IsGrounded)
-                {
-                    SetState(PlayerState.Falling);
-                }
-                else if (input.MoveInput.magnitude > 0.1f && input.SprintHeld)
-                {
-                    SetState(PlayerState.Sprinting);
-                }
-                else if (input.MoveInput.magnitude > 0.1f)
-                {
-                    SetState(PlayerState.Running);
-                }
-                else
-                {
-                    SetState(PlayerState.Idle);
-                }
+                UpdateGroundedState();
                 break;
+
             case PlayerState.Jumping:
-                if(motor.VerticalVelocity < 0f)
-                    SetState(PlayerState.Falling);
-                else if( ledgeGrab.IsLedgeGrabbing)
+                if (ledgeGrab.IsLedgeGrabbing)
+                {
                     SetState(PlayerState.LedgeGrabbing);
+                }
+                else if (motor.HitCeiling)
+                {
+                    SetState(PlayerState.Falling);
+                }
+                else if (motor.VerticalVelocity < 0f)
+                {
+                    SetState(PlayerState.Falling);
+                }
                 break;
+
             case PlayerState.Falling:
                 if (motor.IsGrounded)
-
-                    if (input.MoveInput.magnitude > 0.1f && input.SprintHeld)
-                        SetState(PlayerState.Sprinting);
-                    else if (input.MoveInput.magnitude > 0.1f)
-                        SetState(PlayerState.Running);
-                    else
-                        SetState(PlayerState.Idle);
+                {
+                    UpdateGroundedState();
+                }
                 else if (ledgeGrab.IsLedgeGrabbing)
+                {
                     SetState(PlayerState.LedgeGrabbing);
+                }
                 break;
 
             case PlayerState.WallRunning:
-                if (!wallRun.IsWallRunning)
+                if (wallRun.JumpedFromWall)
                 {
-                    if (motor.IsGrounded)
-                        SetState(PlayerState.Idle);
-                    else
-                        SetState(PlayerState.Falling);
-                }
-                else if (wallRun.JumpedFromWall)
                     SetState(PlayerState.Jumping);
+                }
+                else if (!wallRun.IsWallRunning)
+                {
+                    SetState(motor.IsGrounded ? PlayerState.Idle : PlayerState.Falling);
+                }
                 break;
+
             case PlayerState.LedgeGrabbing:
-                if(!ledgeGrab.IsLedgeGrabbing){
+                if (!ledgeGrab.IsLedgeGrabbing)
+                {
                     SetState(PlayerState.Falling);
                 }
                 break;
         }
-        if (input.JumpPressed)
-        {
-            Debug.Log($"JumpPressed — IsGrounded: {motor.IsGrounded} — CoyoteAvailable: {motor.CoyoteAvailable} — State: {CurrentState}");
-            bool jumped = motor.TryJump();
-            Debug.Log($"TryJump resultado: {jumped}");
-            if(jumped)
-            {
-                SetState(PlayerState.Jumping);
-            }
-        }
     }
 
-    //State Logic
-
-    void HandleState()
+    private void UpdateGroundedState()
     {
-        switch(CurrentState)
+        if (wallRun.IsWallRunning)
+        {
+            SetState(PlayerState.WallRunning);
+            return;
+        }
+
+        if (!motor.IsGrounded)
+        {
+            SetState(PlayerState.Falling);
+            return;
+        }
+
+        if (input.MoveInput.magnitude > 0.1f)
+        {
+            SetState(input.SprintHeld ? PlayerState.Sprinting : PlayerState.Running);
+            return;
+        }
+
+        SetState(PlayerState.Idle);
+    }
+
+    private bool TryHandleJump()
+    {
+        if (!input.JumpPressed)
+        {
+            return false;
+        }
+
+        if (!motor.TryJump())
+        {
+            return false;
+        }
+
+        SetState(PlayerState.Jumping);
+        return true;
+    }
+
+    private void HandleState()
+    {
+        switch (CurrentState)
         {
             case PlayerState.Idle:
                 motor.Stop();
                 break;
+
             case PlayerState.Running:
                 motor.Move(moveDirection, data.moveSpeed);
                 break;
+
             case PlayerState.Sprinting:
                 motor.Move(moveDirection, data.sprintSpeed, data.sprintAcceleration);
                 break;
+
             case PlayerState.Jumping:
-
-                if (moveDirection.magnitude > 0.1f)
-                    motor.Move(moveDirection, data.moveSpeed * 0.8f);
-                else
-                    motor.Decelerate();
-                break;
-
             case PlayerState.Falling:
-                // Mismo control que en el aire
                 if (moveDirection.magnitude > 0.1f)
+                {
                     motor.Move(moveDirection, data.moveSpeed * 0.8f);
+                }
                 else
+                {
                     motor.Decelerate();
+                }
                 break;
 
             case PlayerState.WallRunning:
-                // Por ahora solo frena — WallRunAbility toma el control después
                 motor.Decelerate();
                 break;
+
             case PlayerState.LedgeGrabbing:
-                // LedgeGrabAbility toma el control completo, no hace falta nada acá por ahora
                 break;
         }
     }
 
-
-    //State Set
-
-    void SetState(PlayerState newState)
+    private void SetState(PlayerState newState)
     {
-        if (CurrentState == newState) return;
+        if (CurrentState == newState)
+        {
+            return;
+        }
 
+        CurrentState = newState;
+    }
+
+    public void ForceSetState(PlayerState newState)
+    {
         CurrentState = newState;
     }
 }

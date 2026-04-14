@@ -15,6 +15,7 @@ public class CharacterMotor : MonoBehaviour
     public Vector3 Velocity => velocity;
     public float VerticalVelocity => verticalVelocity;
     public bool OverrideGravity { get; set; }
+    public bool HitCeiling { get; private set; }
     public float GravityScale => data.gravityScale;
     public float HalfHeight => cc.height * 0.5f;
     public float FeetY => transform.position.y + cc.center.y - cc.height * 0.5f;
@@ -143,6 +144,17 @@ public class CharacterMotor : MonoBehaviour
         cc.Move(motion);
     }
 
+    public void MoveVerticalTo(float targetY)
+    {
+        float deltaY = targetY - transform.position.y;
+        if (Mathf.Abs(deltaY) <= 0.001f)
+        {
+            return;
+        }
+
+        cc.Move(Vector3.up * deltaY);
+    }
+
     // Moves player upward until feet reach targetFeetY. Returns true when reached.
     public bool ClimbVertical(float targetFeetY, float speed)
     {
@@ -165,6 +177,16 @@ public class CharacterMotor : MonoBehaviour
     public void Stop()
     {
         velocity = Vector3.zero;
+    }
+
+    public void ResetMotion()
+    {
+        velocity = Vector3.zero;
+        verticalVelocity = 0f;
+        coyoteTimer = 0f;
+        jumpBufferTimer = 0f;
+        OverrideGravity = false;
+        HitCeiling = false;
     }
 
     public bool TryJump()
@@ -225,15 +247,34 @@ public class CharacterMotor : MonoBehaviour
         velocity = horizontalVelocity * speed;
     }
 
+    public void TeleportTo(Vector3 worldPosition)
+    {
+        ResetMotion();
+        cc.enabled = false;
+        transform.position = worldPosition;
+        cc.enabled = true;
+        CheckGround();
+        CheckWall();
+    }
+
 
     //Apply on Character Controller
 
     void ApplyMovement()
     {
+        HitCeiling = false;
+
         if (!OverrideGravity)
             ApplyGravity();
+
         Vector3 finalMove = velocity + Vector3.up * verticalVelocity;
-        cc.Move(finalMove * Time.deltaTime);
+        CollisionFlags collisionFlags = cc.Move(finalMove * Time.deltaTime);
+
+        if ((collisionFlags & CollisionFlags.Above) != 0 && verticalVelocity > 0f)
+        {
+            HitCeiling = true;
+            verticalVelocity = 0f;
+        }
     }
 
 }

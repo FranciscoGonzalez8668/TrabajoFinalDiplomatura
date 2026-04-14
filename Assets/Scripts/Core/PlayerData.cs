@@ -1,11 +1,9 @@
-using System.Data;
 using UnityEngine;
-
+using UnityEngine.Serialization;
 
 [CreateAssetMenu(fileName = "PlayerData", menuName = "QerlkKeeper/PlayerData")]
 public class PlayerData : ScriptableObject
 {
-    
     [Header("Movement")]
     public float moveSpeed = 7f;
     public float acceleration = 20f;
@@ -13,10 +11,9 @@ public class PlayerData : ScriptableObject
 
     [Header("Sprint")]
     public float sprintSpeed = 10f;
-    public float sprintAcceleration = 8;
+    public float sprintAcceleration = 8f;
 
     [Header("Jump")]
-
     public float jumpHeight = 5f;
     public float coyoteTime = 0.15f;
     public float jumpBufferTime = 0.12f;
@@ -29,7 +26,6 @@ public class PlayerData : ScriptableObject
     public float fallMultiplier = 1.5f;
     public float maxFallSpeed = 20f;
 
-
     [Header("Wall Run")]
     public float wallRunSpeed = 8f;
     public float wallRunDuration = 1.5f;
@@ -41,18 +37,13 @@ public class PlayerData : ScriptableObject
     [Header("Ledge Grab")]
     public float ledgeDetectionDistance = 0.8f;
     public float ledgeGrabReach = 1.5f;
-
-    public float ledgeCheckHeightOffse = 0.5f;
-    public float lodgeClimbSpeed = 4f;
-    public float ledgeHangTimeout =3f;
+    [FormerlySerializedAs("ledgeCheckHeightOffse")]
     public float ledgeCheckHeightOffset = 0.5f;
+    [FormerlySerializedAs("lodgeClimbSpeed")]
     public float ledgeClimbSpeed = 4f;
-
+    public float ledgeHangTimeout = 3f;
     public float ledgeClimbDuration = 0.4f;
 
-
-
     [Header("Time Global")]
-    public float globalTimerDuration=120f;
-
+    public float globalTimerDuration = 120f;
 }

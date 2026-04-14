@@ -2,6 +2,7 @@ using UnityEngine;
 
 public class InputHandler : MonoBehaviour
 {
+    public bool InputEnabled { get; private set; } = true;
     public Vector2 MoveInput {get;private set;}
 
     public bool JumpPressed {get;private set;}
@@ -16,6 +17,12 @@ public class InputHandler : MonoBehaviour
 
     void Update()
     {
+        if (!InputEnabled)
+        {
+            ClearInputState();
+            return;
+        }
+
         MoveInput = new Vector2 ( 
             Input.GetAxisRaw("Horizontal"),
             Input.GetAxisRaw("Vertical")
@@ -31,6 +38,23 @@ public class InputHandler : MonoBehaviour
         SlidePressed = false;
     }
 
+    public void SetInputEnabled(bool enabled)
+    {
+        InputEnabled = enabled;
+        if (!enabled)
+        {
+            ClearInputState();
+        }
+    }
 
+    private void ClearInputState()
+    {
+        MoveInput = Vector2.zero;
+        JumpPressed = false;
+        JumpHeld = false;
+        SlidePressed = false;
+        SprintHeld = false;
+        ClimbPressed = false;
+    }
 
 }

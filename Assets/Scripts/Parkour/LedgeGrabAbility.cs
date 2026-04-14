@@ -1,6 +1,4 @@
-using System.Threading;
 using UnityEngine;
-using UnityEngine.AI;
 
 public class LedgeGrabAbility : MonoBehaviour
 {
@@ -17,6 +15,7 @@ public class LedgeGrabAbility : MonoBehaviour
     private float grabCooldown;
     private Vector3 hangPosition;
     private Vector3 ledgeTopPoint;
+    private float grabHeightOffset;
 
     private Vector3 wallNormal;
 
@@ -47,26 +46,11 @@ public class LedgeGrabAbility : MonoBehaviour
 
         if(stateMachine.CurrentState != PlayerStateMachine.PlayerState.Falling) return;
 
-        Vector3 chestPosition = transform.position + Vector3.up * data.ledgeCheckHeightOffset;
-        Debug.DrawRay(chestPosition, transform.forward * data.ledgeDetectionDistance, Color.red);
-        if(!Physics.Raycast(chestPosition,transform.forward ,out RaycastHit wallHit, data.ledgeDetectionDistance))
+        if (!TryFindLedgeAtPosition(transform.position, transform.forward, out RaycastHit wallHit, out RaycastHit ledgeHit))
         {
-            Debug.Log("Ray1 no golpea nada");
             return;
         }
-    
-        Vector3 ray2Origin =new Vector3(
-            wallHit.point.x, 
-            transform.position.y + data.ledgeGrabReach, 
-            wallHit.point.z);
-        
-        Debug.DrawRay(ray2Origin, Vector3.down * data.ledgeGrabReach, Color.green);
-        if(!Physics.SphereCast(ray2Origin, 0.1f, Vector3.down, out RaycastHit ledgeHit, data.ledgeCheckHeightOffset)) 
-        {
-            Debug.Log("Ray2 no golpea nada");
-            return;
-        }
-    
+
         float hightDiff = ledgeHit.point.y - transform.position.y;
 
         if(hightDiff < 0f || hightDiff > data.ledgeGrabReach) return;
@@ -78,6 +62,7 @@ public class LedgeGrabAbility : MonoBehaviour
     {
         IsLedgeGrabbing = true;
         wallNormal = normal;
+        grabHeightOffset = ledgeTopPoint.y - transform.position.y;
         hangTimer = data.ledgeHangTimeout;
         hangPosition = new Vector3(transform.position.x, ledgeTopPoint.y -0.1f, transform.position.z);
         this.ledgeTopPoint = ledgeTopPoint;
@@ -89,24 +74,40 @@ public class LedgeGrabAbility : MonoBehaviour
 
     void UpdateLedgeGrab()
     {
-        Debug.Log($"IsLedgeGrabbing: {IsLedgeGrabbing} | isClimbing: {isClimbing} | hangTimer: {hangTimer:F2}");
-        Debug.Log($"ClimbPressed: {input.ClimbPressed}");
-        Vector3 pos = transform.position;
-        pos.y = hangPosition.y;
-        transform.position = pos;
+        motor.MoveVerticalTo(hangPosition.y);
         motor.SetVerticalVelocity(0f);
 
+        Vector3 wallCheckDirection = -new Vector3(wallNormal.x, 0f, wallNormal.z).normalized;
         Vector3 ledgeDirection = Vector3.Cross(wallNormal, Vector3.up).normalized;
         Vector3 moveAlongLedge = ledgeDirection * input.MoveInput.x;
 
         if(moveAlongLedge.magnitude > 0.1f)
+        {
+            float probeStep = Mathf.Max(0.05f, data.moveSpeed * Time.deltaTime);
+            Vector3 lateralProbe = ledgeDirection * Mathf.Sign(input.MoveInput.x) * probeStep;
+            Vector3 candidatePosition = new Vector3(
+                transform.position.x + lateralProbe.x,
+                ledgeTopPoint.y - grabHeightOffset,
+                transform.position.z + lateralProbe.z);
+
+            if (!TryFindLedgeAtPosition(candidatePosition, wallCheckDirection, out RaycastHit wallHit, out RaycastHit ledgeHit))
+            {
+                StopLedgeGrab();
+                return;
+            }
+
+            wallNormal = wallHit.normal;
+            ledgeTopPoint = ledgeHit.point;
+            hangPosition = new Vector3(hangPosition.x, ledgeHit.point.y - 0.1f, hangPosition.z);
             motor.Move(moveAlongLedge, data.moveSpeed);
+        }
         else
+        {
             motor.Stop();
+        }
 
         if (input.ClimbPressed )
         {
-            Debug.Log("ClimbPressed detectado");
             StartClimb();
             return;
         }
@@ -119,6 +120,27 @@ public class LedgeGrabAbility : MonoBehaviour
         hangTimer -= Time.deltaTime;
         if(hangTimer <= 0f)
             StopLedgeGrab();    
+    }
+
+    bool TryFindLedgeAtPosition(Vector3 characterPosition, Vector3 wallCheckDirection, out RaycastHit wallHit, out RaycastHit ledgeHit)
+    {
+        Vector3 chestPosition = characterPosition + Vector3.up * data.ledgeCheckHeightOffset;
+        Vector3 wallDirection = wallCheckDirection.normalized;
+
+        Debug.DrawRay(chestPosition, wallDirection * data.ledgeDetectionDistance, Color.red);
+        if (!Physics.Raycast(chestPosition, wallDirection, out wallHit, data.ledgeDetectionDistance))
+        {
+            ledgeHit = default;
+            return false;
+        }
+
+        Vector3 ray2Origin = new Vector3(
+            wallHit.point.x,
+            characterPosition.y + data.ledgeGrabReach,
+            wallHit.point.z);
+
+        Debug.DrawRay(ray2Origin, Vector3.down * data.ledgeGrabReach, Color.green);
+        return Physics.SphereCast(ray2Origin, 0.1f, Vector3.down, out ledgeHit, data.ledgeCheckHeightOffset);
     }
 
     void StartClimb()
@@ -179,19 +201,34 @@ public class LedgeGrabAbility : MonoBehaviour
         float jumpVelocity = 2f * Mathf.Abs(gravity) * motor.GravityScale * data.wallJumpHeight;
         motor.SetVerticalVelocity(Mathf.Sqrt(jumpVelocity));
 
+        Vector3 wallOut = new Vector3(wallNormal.x, 0f, wallNormal.z).normalized;
+
         if (Mathf.Abs(input.MoveInput.x) > 0.1f)
         {
             Vector3 lateralDir = Vector3.Cross(wallNormal, Vector3.up).normalized;
             motor.SetHorizontalVelocity(lateralDir * Mathf.Sign(input.MoveInput.x), data.wallJumpSpeed);
+        }
+        else
+        {
+            motor.SetHorizontalVelocity(wallOut, data.wallJumpSpeed);
         }
     }
 
     void StopLedgeGrab()
     {
         IsLedgeGrabbing = false;
+        isClimbing = false;
+        climbVerticalDone = false;
+        climbTimer = 0f;
         motor.OverrideGravity = false;
         motor.Stop();
         grabCooldown = 0.5f;
+    }
+
+    public void ForceStop()
+    {
+        grabCooldown = 0f;
+        StopLedgeGrab();
     }
 
 }

@@ -5,6 +5,7 @@ public class CameraController : MonoBehaviour
     [Header("Referencias")]
     [SerializeField] private Transform target;          // CameraTarget del Player
     [SerializeField] private Transform playerBody;      // Transform del Player
+    [SerializeField] private PlayerStateMachine stateMachine;
 
     [Header("Configuración")]
     [SerializeField] private float mouseSensitivity = 2f;
@@ -79,6 +80,13 @@ public class CameraController : MonoBehaviour
     // -------------------------------------------------------
     void HandlePlayerRotation()
     {
+        if (stateMachine != null &&
+            (stateMachine.CurrentState == PlayerStateMachine.PlayerState.LedgeGrabbing ||
+             stateMachine.CurrentState == PlayerStateMachine.PlayerState.WallRunning))
+        {
+            return;
+        }
+
         // El personaje rota para mirar hacia donde apunta la cámara horizontalmente
         // Solo cuando hay input de movimiento — lo maneja PlayerStateMachine
         // Acá solo exponemos la dirección forward de la cámara en el plano horizontal
@@ -147,5 +155,19 @@ public class CameraController : MonoBehaviour
                 -Mathf.Sin(yaw * Mathf.Deg2Rad)
             ).normalized;
         }
+    }
+
+    public void SnapToPlayerForward()
+    {
+        Vector3 forward = playerBody.forward;
+        forward.y = 0f;
+
+        if (forward.sqrMagnitude <= 0.001f)
+        {
+            return;
+        }
+
+        forward.Normalize();
+        yaw = Mathf.Atan2(forward.x, forward.z) * Mathf.Rad2Deg;
     }
 }

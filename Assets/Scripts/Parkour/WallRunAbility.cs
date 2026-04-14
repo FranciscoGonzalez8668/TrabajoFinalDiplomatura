@@ -1,28 +1,20 @@
 using UnityEngine;
 
-
 public class WallRunAbility : MonoBehaviour
-    {
+{
     [SerializeField] private PlayerData data;
     [SerializeField] private CharacterMotor motor;
     [SerializeField] private InputHandler input;
-    [SerializeField] private PlayerStateMachine stateMachine;
 
-    public bool IsWallRunning {get; private set;}
+    public bool IsWallRunning { get; private set; }
+    public bool JumpedFromWall { get; private set; }
 
-    public bool JumpedFromWall {get; private set;}
     private bool timerExpired;
-
-    public void ResetJumpFlag()
-    {
-        JumpedFromWall = false;
-    }
-
     private float wallRunTimer;
     private bool hasLeftGround;
     private Vector3 wallRunDirection;
 
-    void Update()
+    private void Update()
     {
         if (motor.IsTouchingWall && !motor.IsGrounded && input.JumpPressed)
         {
@@ -33,82 +25,89 @@ public class WallRunAbility : MonoBehaviour
         if (IsWallRunning)
         {
             UpdateWallRun();
+            return;
         }
-        else
+
+        if (JumpedFromWall && !motor.IsTouchingWall)
         {
-            if (JumpedFromWall && !motor.IsTouchingWall)
-                ResetJumpFlag();
-
-            if (timerExpired && !motor.IsTouchingWall)
-                timerExpired = false;
-
-            TryStartWallRun();
+            ResetJumpFlag();
         }
+
+        if (timerExpired && !motor.IsTouchingWall)
+        {
+            timerExpired = false;
+        }
+
+        TryStartWallRun();
     }
 
-    //Try to start wall run
-    void TryStartWallRun()
+    public void ResetJumpFlag()
     {
-        //Conditions to start wall run
+        JumpedFromWall = false;
+    }
+
+    private void TryStartWallRun()
+    {
         bool isLateralWall = Mathf.Abs(Vector3.Dot(motor.WallNormal, transform.right)) > 0.5f;
 
-        if(!input.SprintHeld||
-        !motor.IsTouchingWall||
-        !motor.IsGrounded||
-        !isLateralWall||
-        timerExpired) return;
+        if (!input.SprintHeld ||
+            !motor.IsTouchingWall ||
+            !motor.IsGrounded ||
+            !isLateralWall ||
+            timerExpired)
+        {
+            return;
+        }
 
         StartWallRun();
-
     }
 
-    //Start wall run
-
-    void StartWallRun()
+    private void StartWallRun()
     {
         IsWallRunning = true;
         wallRunTimer = data.wallRunDuration;
         hasLeftGround = false;
         motor.OverrideGravity = true;
 
-        //Determine wall run direction
         wallRunDirection = CalculateWallRunDirection();
 
-        // Impulso vertical único para crear la parábola (solo si no viene subiendo más rápido ya)
         if (motor.VerticalVelocity < data.wallRunUpBoost)
+        {
             motor.SetVerticalVelocity(data.wallRunUpBoost);
-        
-        motor.SetHorizontalVelocity(wallRunDirection, motor.Velocity.magnitude); // ← esta línea
+        }
+
+        motor.SetHorizontalVelocity(wallRunDirection, motor.Velocity.magnitude);
     }
 
-    void UpdateWallRun()
+    private void UpdateWallRun()
     {
         wallRunTimer -= Time.deltaTime;
 
-        if (!motor.IsGrounded) hasLeftGround = true;
+        if (!motor.IsGrounded)
+        {
+            hasLeftGround = true;
+        }
 
         if (!input.SprintHeld || !motor.IsTouchingWall || wallRunTimer <= 0f || (hasLeftGround && motor.IsGrounded))
         {
-            if (wallRunTimer <= 0f) timerExpired = true;
+            if (wallRunTimer <= 0f)
+            {
+                timerExpired = true;
+            }
+
             StopWallRun();
             return;
         }
 
-        wallRunDirection = CalculateWallRunDirection();
-
         motor.Move(wallRunDirection, data.wallRunSpeed);
-
         motor.ApplyReduceGravity(data.wallRunGravity);
-
     }
 
-    void WallJump()
+    private void WallJump()
     {
-        // Guardamos la normal ANTES de detener el wall run
         Vector3 wallNormal = motor.WallNormal;
         StopWallRun();
 
-        // Calculamos componente paralela a la pared en la velocidad actual
         Vector3 wallOut = new Vector3(wallNormal.x, 0f, wallNormal.z).normalized;
         Vector3 horizontalVelocity = motor.Velocity;
         Vector3 parallelVelocity = horizontalVelocity - Vector3.Dot(horizontalVelocity, wallOut) * wallOut;
@@ -116,56 +115,47 @@ public class WallRunAbility : MonoBehaviour
         Vector3 horizontalImpulse;
         if (parallelVelocity.magnitude > 1f)
         {
-            // Tiene velocidad paralela (wall run o movimiento lateral) — mezcla normal + dirección paralela
             horizontalImpulse = (wallOut * data.wallJumpForce + parallelVelocity.normalized * data.wallJumpSpeed).normalized;
         }
         else
         {
-            // Sin velocidad paralela — salta perpendicular a la pared
             horizontalImpulse = wallOut;
         }
 
         motor.SetHorizontalVelocity(horizontalImpulse, data.wallJumpSpeed);
 
-        // Impulso vertical — arco bajo para sensación de parkour
-        float gravity = (float)Physics.gravity.y;
+        float gravity = Physics.gravity.y;
         float jumpVelocity = 2f * Mathf.Abs(gravity) * motor.GravityScale * data.wallJumpHeight;
         motor.SetVerticalVelocity(Mathf.Sqrt(jumpVelocity));
 
         JumpedFromWall = true;
     }
 
-
-    //Stop wall run
-
-    void StopWallRun()
+    private void StopWallRun()
     {
         IsWallRunning = false;
         wallRunTimer = 0f;
         motor.OverrideGravity = false;
     }
 
-    //Calculate wall run direction
-
-    Vector3 CalculateWallRunDirection()
+    private Vector3 CalculateWallRunDirection()
     {
-
-        //Cross(wall normal, up) to get a vector parallel to the wall and horizontal
-        Vector3 wallParallel = Vector3.Cross(motor.WallNormal,Vector3.up).normalized;
-
-
-        //Determinate if the wall parallel direction is the same as the player's forward direction,
-        //if not, invert it
+        Vector3 wallParallel = Vector3.Cross(motor.WallNormal, Vector3.up).normalized;
         float dot = Vector3.Dot(transform.forward, wallParallel);
-        if (dot < 0f) wallParallel = -wallParallel;
+
+        if (dot < 0f)
+        {
+            wallParallel = -wallParallel;
+        }
 
         return wallParallel;
     }
 
-    
-
-
-
-
-
+    public void ForceStop()
+    {
+        JumpedFromWall = false;
+        timerExpired = false;
+        hasLeftGround = false;
+        StopWallRun();
+    }
 }
