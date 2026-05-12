@@ -129,6 +129,8 @@ GameObject:
   - component: {fileID: 5330014219788082591}
   - component: {fileID: 5330014219788082590}
   - component: {fileID: 1389791778896684040}
+  - component: {fileID: 1880065544}
+  - component: {fileID: 5042230703151899111}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -213,8 +215,9 @@ MonoBehaviour:
   motor: {fileID: 5330014219788082586}
   input: {fileID: 5330014219788082587}
   cameraController: {fileID: 0}
-  ledgeGrab: {fileID: 1389791778896684040}
   wallRun: {fileID: 5330014219788082590}
+  wallJump: {fileID: 0}
+  ledgeGrab: {fileID: 1389791778896684040}
 --- !u!114 &5330014219788082590
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -230,7 +233,6 @@ MonoBehaviour:
   data: {fileID: 11400000, guid: b3f2af7b5b35ef34e9540048049434ca, type: 2}
   motor: {fileID: 5330014219788082586}
   input: {fileID: 5330014219788082587}
-  stateMachine: {fileID: 5330014219788082591}
 --- !u!114 &1389791778896684040
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -247,3 +249,39 @@ MonoBehaviour:
   motor: {fileID: 5330014219788082586}
   input: {fileID: 5330014219788082587}
   stateMachine: {fileID: 5330014219788082591}
+--- !u!114 &1880065544
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5330014219788082580}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3034b3860efa1eb4280a953166a77d38, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  input: {fileID: 5330014219788082587}
+  motor: {fileID: 5330014219788082586}
+  stateMachine: {fileID: 5330014219788082591}
+  wallRun: {fileID: 5330014219788082590}
+  wallJump: {fileID: 5042230703151899111}
+  ledgeGrab: {fileID: 1389791778896684040}
+  cameraController: {fileID: 0}
+  respawnPoint: {fileID: 0}
+  respawnDelay: 1
+--- !u!114 &5042230703151899111
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5330014219788082580}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fb3077247ea2ab942aba04c105860782, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  data: {fileID: 0}
+  motor: {fileID: 0}
+  input: {fileID: 0}

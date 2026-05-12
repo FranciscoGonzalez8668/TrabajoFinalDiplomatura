@@ -12,6 +12,10 @@ public class CharacterMotor : MonoBehaviour
     public bool IsGrounded {get; private set;}
     public bool IsTouchingWall {get; private set;}
     public Vector3 WallNormal {get; private set;}
+
+    public bool IsFrontWall {get; private set;}
+
+    public Vector3 FrontWallNormal {get;private set;}
     public Vector3 Velocity => velocity;
     public float VerticalVelocity => verticalVelocity;
     public bool OverrideGravity { get; set; }
@@ -65,6 +69,12 @@ public class CharacterMotor : MonoBehaviour
 
     void CheckWall()
     {
+
+        CheckLateralWall();
+        CheckFrontWall();
+    }
+
+    void CheckLateralWall(){
         Vector3 diagRight = (transform.forward + transform.right).normalized;
         Vector3 diagLeft  = (transform.forward - transform.right).normalized;
 
@@ -84,6 +94,23 @@ public class CharacterMotor : MonoBehaviour
             IsTouchingWall = false;
             WallNormal = Vector3.zero;
         }
+    }
+    
+    void CheckFrontWall()
+    {
+        RaycastHit hit;
+        if(Physics.Raycast(transform.position, transform.forward, out hit, data.wallDetectionDistance))
+        {
+            float alignment = Vector3.Dot(transform.forward, -hit.normal);
+            if(alignment > data.frontWallThreshold) //Ajusta este umbral según
+            {
+                IsFrontWall = true;
+                FrontWallNormal = hit.normal;
+                return;
+            }
+        }
+        IsFrontWall = false;
+        FrontWallNormal = Vector3.zero;
     }
 
 
@@ -187,6 +214,8 @@ public class CharacterMotor : MonoBehaviour
         jumpBufferTimer = 0f;
         OverrideGravity = false;
         HitCeiling = false;
+        IsFrontWall = false;
+        FrontWallNormal = Vector3.zero;
     }
 
     public bool TryJump()

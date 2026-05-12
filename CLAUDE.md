@@ -64,7 +64,7 @@ Parametros principales:
 | Salto | `jumpHeight=5`, `coyoteTime=0.15s`, `jumpBufferTime=0.12s` |
 | Wall Jump | `wallJumpSpeed=7`, `wallJumpForce=3`, `wallJumpHeight=1.5` |
 | Gravedad | `gravityScale=2.5`, `fallMultiplier=1.5`, `maxFallSpeed=20` |
-| Wall Run | `wallRunSpeed=8`, `wallRunDuration=1.5s`, `wallRunGravity=0.3` |
+| Wall Run | `wallRunSpeed=8`, `horizontalWallRunDuration=1.5s`, `wallRunGravity=0.3` |
 | Ledge Grab | `ledgeDetectionDistance=0.8`, `ledgeGrabReach=1.5`, `ledgeHangTimeout=3s` |
 
 ### CharacterMotor (`Core/CharacterMotor.cs`)

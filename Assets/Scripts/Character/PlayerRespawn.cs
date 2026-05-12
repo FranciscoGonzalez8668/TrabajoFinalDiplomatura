@@ -1,6 +1,11 @@
 using System.Collections;
 using UnityEngine;
 
+/// <summary>
+/// Maneja muerte y respawn del jugador.
+/// Al morir: deshabilita input, para todas las abilities, resetea el motor.
+/// Al respawnear: teletransporta al punto de respawn y reactiva todo.
+/// </summary>
 public class PlayerRespawn : MonoBehaviour
 {
     [Header("References")]
@@ -8,6 +13,8 @@ public class PlayerRespawn : MonoBehaviour
     [SerializeField] private CharacterMotor motor;
     [SerializeField] private PlayerStateMachine stateMachine;
     [SerializeField] private WallRunAbility wallRun;
+    [SerializeField] private WallJumpAbility wallJump;
+    [SerializeField] private VerticalWallRunAbility verticalWallRun;
     [SerializeField] private LedgeGrabAbility ledgeGrab;
     [SerializeField] private CameraController cameraController;
     [SerializeField] private Transform respawnPoint;
@@ -36,22 +43,16 @@ public class PlayerRespawn : MonoBehaviour
 
     public void SetRespawnPoint(Transform newRespawnPoint)
     {
-        if (newRespawnPoint == null)
-        {
-            return;
-        }
+        if (newRespawnPoint == null) return;
 
-        respawnPoint = newRespawnPoint;
+        respawnPoint  = newRespawnPoint;
         spawnPosition = newRespawnPoint.position;
         spawnRotation = newRespawnPoint.rotation;
     }
 
     public void Kill()
     {
-        if (IsDead)
-        {
-            return;
-        }
+        if (IsDead) return;
 
         IsDead = true;
         ApplyDeathState();
@@ -62,9 +63,11 @@ public class PlayerRespawn : MonoBehaviour
     {
         input.SetInputEnabled(false);
         wallRun.ForceStop();
+        wallJump.ForceStop();
         ledgeGrab.ForceStop();
         motor.ResetMotion();
         stateMachine.ForceSetState(PlayerStateMachine.PlayerState.Idle);
+        verticalWallRun.ForceStop();
     }
 
     private IEnumerator RespawnAfterDelay()
@@ -75,23 +78,23 @@ public class PlayerRespawn : MonoBehaviour
 
     private void Respawn()
     {
-        Vector3 targetPosition = respawnPoint != null ? respawnPoint.position : spawnPosition;
-        Quaternion rawRotation = respawnPoint != null ? respawnPoint.rotation : spawnRotation;
+        Vector3 targetPosition    = respawnPoint != null ? respawnPoint.position : spawnPosition;
+        Quaternion rawRotation    = respawnPoint != null ? respawnPoint.rotation  : spawnRotation;
         Quaternion targetRotation = Quaternion.Euler(0f, rawRotation.eulerAngles.y, 0f);
 
         wallRun.ForceStop();
+        wallJump.ForceStop();
         ledgeGrab.ForceStop();
+        verticalWallRun.ForceStop();
         motor.TeleportTo(targetPosition);
         transform.rotation = targetRotation;
         stateMachine.ForceSetState(PlayerStateMachine.PlayerState.Idle);
         input.SetInputEnabled(true);
 
         if (cameraController != null)
-        {
             cameraController.SnapToPlayerForward();
-        }
 
-        IsDead = false;
+        IsDead         = false;
         respawnRoutine = null;
     }
 

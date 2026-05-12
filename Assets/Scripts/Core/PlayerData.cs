@@ -8,6 +8,7 @@ public class PlayerData : ScriptableObject
     public float moveSpeed = 7f;
     public float acceleration = 20f;
     public float deceleration = 15f;
+    
 
     [Header("Sprint")]
     public float sprintSpeed = 10f;
@@ -28,11 +29,13 @@ public class PlayerData : ScriptableObject
 
     [Header("Wall Run")]
     public float wallRunSpeed = 8f;
-    public float wallRunDuration = 1.5f;
+    public float horizontalWallRunDuration = 1.5f;
     public float wallDetectionDistance = 0.6f;
     public float wallRunGravity = 0.3f;
     public float minWallRunHeight = 0.5f;
     public float wallRunUpBoost = 3f;
+    public float verticalWallRunDuration = 0.5f;
+    public float frontWallThreshold = 0.7f;
 
     [Header("Ledge Grab")]
     public float ledgeDetectionDistance = 0.8f;

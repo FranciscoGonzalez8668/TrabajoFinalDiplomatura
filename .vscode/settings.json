@@ -56,5 +56,15 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "FinalProject.sln"
+    "dotnet.defaultSolution": "FinalProject.sln",
+    "workbench.colorTheme": "Catppuccin Dark Pro",
+    "workbench.editor.decorations.colors": false,
+    "workbench.preferredHighContrastColorTheme": "Default High Contrast",
+    "workbench.colorCustomizations": {
+        "symbolIcon.variableForeground": "#9CDCFE",
+        "symbolIcon.propertyForeground": "#9CDCFE",
+        "symbolIcon.functionForeground": "#DCDCAA",
+        "symbolIcon.methodForeground": "#DCDCAA",
+        "symbolIcon.classForeground": "#4EC9B0",
+    }
 }
