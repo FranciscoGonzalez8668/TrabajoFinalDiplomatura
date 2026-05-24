@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 [RequireComponent(typeof(CharacterController))]
@@ -25,11 +24,37 @@ public class CharacterMotor : MonoBehaviour
     public float FeetY => transform.position.y + cc.center.y - cc.height * 0.5f;
 
 
-    //Private State
+    //Private State 
 
     private CharacterController cc;
     private Vector3 velocity;
     private float verticalVelocity;
+
+    // Plataformas móviles
+    private Transform currentSurface;
+    private float platformLostTimer;
+    private const float PlatformGraceTime = 0.12f;
+
+    /// <summary>
+    /// Cuando está en true, el timer de gracia no libera el parenting.
+    /// Usado por LedgeGrabAbility mientras el jugador está colgado.
+    /// </summary>
+    public bool SurfaceLocked { get; set; }
+
+    public void AttachToSurface(Transform surface)
+    {
+        currentSurface = surface;
+        platformLostTimer = 0f;
+        transform.SetParent(surface);
+    }
+
+    public void DetachFromSurface()
+    {
+        SurfaceLocked = false;
+        currentSurface = null;
+        platformLostTimer = 0f;
+        transform.SetParent(null);
+    }
 
     //Coyote Time
     private float coyoteTimer;
@@ -63,6 +88,21 @@ public class CharacterMotor : MonoBehaviour
             verticalVelocity = -2f; //Small negative to keep grounded
         }
 
+        // Timer de gracia antes de soltarse de la plataforma
+        // Evita que un flickering puntual de isGrounded deshaga el parenting
+        if (IsGrounded)
+        {
+            platformLostTimer = 0f;
+        }
+        else if (currentSurface != null && !SurfaceLocked)
+        {
+            platformLostTimer += Time.deltaTime;
+            if (platformLostTimer >= PlatformGraceTime)
+            {
+                currentSurface = null;
+                transform.SetParent(null);
+            }
+        }
     }
 
     //Wall Check
@@ -267,7 +307,7 @@ public class CharacterMotor : MonoBehaviour
     {
         float gravityBase = Physics.gravity.y * data.gravityScale;
         verticalVelocity += gravityBase * multiplier * Time.deltaTime;
-        verticalVelocity = Math.Max(verticalVelocity, -data.maxFallSpeed);
+        verticalVelocity = Mathf.Max(verticalVelocity, -data.maxFallSpeed);
     }
 
     //SetHorizontal Velocity (Used in WallRun)
@@ -306,4 +346,21 @@ public class CharacterMotor : MonoBehaviour
         }
     }
 
+    private void OnControllerColliderHit(ControllerColliderHit hit)
+    {
+        // Solo superficies que miran hacia arriba
+        if (hit.normal.y < 0.7f) return;
+
+        ObjectMover mover = hit.gameObject.GetComponent<ObjectMover>();
+        if (mover == null) return;
+
+        // Notificar contacto — usado por plataformas Vanishing
+        mover.NotifyPlayerContact();
+
+        // Parenting para plataformas móviles (Linear / Pendulum)
+        if (currentSurface == hit.transform) return;
+        currentSurface = hit.transform;
+        platformLostTimer = 0f;
+        transform.SetParent(hit.transform);
+    }
 }

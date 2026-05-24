@@ -7,7 +7,7 @@ using System.Collections;
 
 public class ObjectMover : MonoBehaviour
 {
-    public enum MoverType {Linear, Pendulum, Vanishing}
+    public enum MoverType {Linear, Pendulum, PendulumBob, Vanishing}
 
     [Header( "General")]
     [SerializeField] private MoverType type = MoverType.Linear;
@@ -20,10 +20,17 @@ public class ObjectMover : MonoBehaviour
     [SerializeField] private AnimationCurve movementCurve = AnimationCurve.EaseInOut(0f,0f,1f,1f);
     
 
-    [Header("Pendulum")]
-    [SerializeField] private Vector3 pivotAxis = Vector3.right *2f;
+    [Header("Pendulum (rotación sobre eje propio)")]
+    [SerializeField] private Vector3 pivotAxis = Vector3.right * 2f;
     [SerializeField] private float maxAngle = 45f;
     [SerializeField] private float cycleDuration = 2f;
+
+    [Header("PendulumBob (traslación en arco desde punto de suspensión)")]
+    [Tooltip("Vector desde el objeto hasta el punto de suspensión. Ej: Vector3.up * 4 = pivote 4u arriba.")]
+    [SerializeField] private Vector3 pivotOffset = Vector3.up * 4f;
+    [Tooltip("Eje alrededor del cual oscila. Vector3.forward = izquierda-derecha. Vector3.right = adelante-atrás.")]
+    [SerializeField] private Vector3 bobSwingAxis = Vector3.forward;
+    // Reutiliza maxAngle, cycleDuration y pendulumCurve del bloque Pendulum
 
     [SerializeField] private AnimationCurve pendulumCurve = new AnimationCurve(
         new Keyframe(0f,    0f),
@@ -74,6 +81,9 @@ public class ObjectMover : MonoBehaviour
             case MoverType.Pendulum:
                 UpdatePendulum();
                 break;
+            case MoverType.PendulumBob:
+                UpdatePendulumBob();
+                break;
         }
     }
 
@@ -100,6 +110,7 @@ public class ObjectMover : MonoBehaviour
 
         float t = movementCurve.Evaluate(normalizedTime);
         transform.position = startPosition + offset * t;
+        Physics.SyncTransforms();
     }
 
     //:-------------------------------------------------------
@@ -112,20 +123,47 @@ public class ObjectMover : MonoBehaviour
         timer += Time.deltaTime;
         float normalizedTime = (timer % cycleDuration) / cycleDuration;
         float angle = pendulumCurve.Evaluate(normalizedTime) * maxAngle;
-        transform.rotation = startRotation * Quaternion.AngleAxis(angle,pivotAxis.normalized) ;
+        transform.rotation = startRotation * Quaternion.AngleAxis(angle, pivotAxis.normalized);
+        Physics.SyncTransforms();
     }
 
     //:-------------------------------------------------------
-    // Vanishing Movement
+    // PendulumBob Movement
     //:-------------------------------------------------------
 
-    private void OCollisionEnter(Collision collision)
+    private void UpdatePendulumBob()
     {
-        if (type !=MoverType.Vanishing || isVanished || !collision.gameObject.CompareTag("Player")) return;
+        timer += Time.deltaTime;
+        float normalizedTime = (timer % cycleDuration) / cycleDuration;
+        float angle = pendulumCurve.Evaluate(normalizedTime) * maxAngle;
 
+        // Punto de suspensión fijo en world space
+        Vector3 pivot = startPosition + pivotOffset;
+
+        // Dirección en reposo: del pivote hacia el objeto (opuesta al offset)
+        Vector3 restDir = -pivotOffset.normalized;
+        float armLength = pivotOffset.magnitude;
+
+        // Rotar la dirección en reposo según el ángulo del péndulo
+        Quaternion swing = Quaternion.AngleAxis(angle, bobSwingAxis.normalized);
+        transform.position = pivot + swing * restDir * armLength;
+        Physics.SyncTransforms();
+    }
+
+    //:-------------------------------------------------------
+    // Vanishing
+    // No usa OnCollisionEnter porque CharacterController no genera eventos Collision.
+    // CharacterMotor llama NotifyPlayerContact() desde OnControllerColliderHit.
+    //:-------------------------------------------------------
+
+    /// <summary>
+    /// Llamado por CharacterMotor cuando el jugador pisa esta plataforma desde arriba.
+    /// </summary>
+    public void NotifyPlayerContact()
+    {
+        if (type != MoverType.Vanishing || isVanished) return;
         StartCoroutine(VanishRoutine());
     }
-
 
     private IEnumerator VanishRoutine()
     {
@@ -133,7 +171,9 @@ public class ObjectMover : MonoBehaviour
 
         yield return new WaitForSeconds(vanishDelay);
         SetVisible(false);
+
         yield return new WaitForSeconds(respawnTime);
+        isVanished = false;   // Debe resetearse ANTES de re-habilitar para que el próximo piso active el trigger
         SetVisible(true);
     }
 

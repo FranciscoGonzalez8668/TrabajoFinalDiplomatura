@@ -31,6 +31,7 @@ public class WallRunAbility : MonoBehaviour, IMovementAbility
                motor.IsTouchingWall  &&
                motor.IsGrounded      &&
                isLateralWall         &&
+               !motor.IsFrontWall    && // Cede prioridad al VerticalWallRun si es pared frontal
                !timerExpired;
     }
 

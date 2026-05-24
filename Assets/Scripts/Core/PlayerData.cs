@@ -8,6 +8,7 @@ public class PlayerData : ScriptableObject
     public float moveSpeed = 7f;
     public float acceleration = 20f;
     public float deceleration = 15f;
+    public float rotationSpeed = 12f;
     
 
     [Header("Sprint")]

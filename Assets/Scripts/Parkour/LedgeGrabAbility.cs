@@ -27,6 +27,12 @@ public class LedgeGrabAbility : MonoBehaviour, IMovementAbility
     private Vector3 climbTargetPosition;
     private float climbTimer;
 
+    // Moving platform support
+    private Transform attachedPlatform;
+    private Vector3 localHangPosition;
+    private Vector3 localLedgeTopPoint;
+    private Vector3 localWallNormal;
+
     public bool CanStart()
     {
         if (Time.time < grabCooldownEndTime) return false;
@@ -39,8 +45,25 @@ public class LedgeGrabAbility : MonoBehaviour, IMovementAbility
 
     public void StartAbility()
     {
-        TryFindLedgeAtPosition(transform.position, transform.forward, out RaycastHit wallHit, out RaycastHit ledgeHit);
+        if (!TryFindLedgeAtPosition(transform.position, transform.forward, out RaycastHit wallHit, out RaycastHit ledgeHit))
+            return;
+
         StartLedgeGrab(ledgeHit.point, wallHit.normal);
+
+        // Si el borde pertenece a un ObjectMover, adjuntarse para moverse con él
+        ObjectMover mover = wallHit.collider != null
+            ? wallHit.collider.GetComponentInParent<ObjectMover>()
+            : null;
+
+        if (mover != null)
+        {
+            attachedPlatform = mover.transform;
+            motor.AttachToSurface(attachedPlatform);
+            motor.SurfaceLocked = true;
+            localHangPosition  = attachedPlatform.InverseTransformPoint(hangPosition);
+            localLedgeTopPoint = attachedPlatform.InverseTransformPoint(ledgeTopPoint);
+            localWallNormal    = attachedPlatform.InverseTransformDirection(wallNormal);
+        }
     }
 
     public void UpdateAbility()
@@ -58,6 +81,7 @@ public class LedgeGrabAbility : MonoBehaviour, IMovementAbility
 
     public void ForceStop()
     {
+        motor.DetachFromSurface();
         grabCooldownEndTime = 0f;
         StopLedgeGrab();
     }
@@ -82,6 +106,14 @@ public class LedgeGrabAbility : MonoBehaviour, IMovementAbility
 
     private void UpdateLedgeGrab()
     {
+        // Si estamos colgados de una plataforma móvil, actualizar posiciones world-space
+        if (attachedPlatform != null)
+        {
+            hangPosition  = attachedPlatform.TransformPoint(localHangPosition);
+            ledgeTopPoint = attachedPlatform.TransformPoint(localLedgeTopPoint);
+            wallNormal    = attachedPlatform.TransformDirection(localWallNormal);
+        }
+
         motor.MoveVerticalTo(hangPosition.y);
         motor.SetVerticalVelocity(0f);
 
@@ -142,6 +174,11 @@ public class LedgeGrabAbility : MonoBehaviour, IMovementAbility
         motor.OverrideGravity = false;
         motor.Stop();
         grabCooldownEndTime = Time.time + 0.5f;
+
+        // Liberar el lock — si el jugador subió, el sistema de plataformas toma el control normalmente.
+        // Si saltó o cayó, DetachFromSurface se llama desde LedgeJump/ForceStop.
+        motor.SurfaceLocked = false;
+        attachedPlatform = null;
     }
 
     // -------------------------------------------------------
@@ -201,6 +238,7 @@ public class LedgeGrabAbility : MonoBehaviour, IMovementAbility
 
     private void LedgeJump()
     {
+        motor.DetachFromSurface();
         StopLedgeGrab();
 
         float gravity       = Physics.gravity.y;

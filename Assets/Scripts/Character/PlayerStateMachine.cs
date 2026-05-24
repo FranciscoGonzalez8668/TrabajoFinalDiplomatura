@@ -47,6 +47,7 @@ public class PlayerStateMachine : MonoBehaviour
         UpdateAbilities();
         UpdateState();
         HandleState();
+        HandleRotation();
     }
 
     // -------------------------------------------------------
@@ -55,11 +56,15 @@ public class PlayerStateMachine : MonoBehaviour
 
     private void UpdateAbilities()
     {
+        // Durante LedgeGrabbing y VerticalWallRunning no se inician abilities nuevas
+        bool canStartNew = CurrentState != PlayerState.LedgeGrabbing
+                        && CurrentState != PlayerState.VerticalWallRunning;
+
         foreach (IMovementAbility ability in abilities)
         {
             if (ability.IsActive)
                 ability.UpdateAbility();
-            else if (ability.CanStart())
+            else if (canStartNew && ability.CanStart())
                 ability.StartAbility();
         }
     }
@@ -123,6 +128,12 @@ public class PlayerStateMachine : MonoBehaviour
 
     private void UpdateGroundedState()
     {
+        if (verticalWallRun.IsActive)
+        {
+            SetState(PlayerState.VerticalWallRunning);
+            return;
+        }
+
         if (wallRun.IsActive)
         {
             SetState(PlayerState.WallRunning);
@@ -141,12 +152,6 @@ public class PlayerStateMachine : MonoBehaviour
             return;
         }
 
-        if(verticalWallRun.IsActive)
-        {
-            SetState(PlayerState.VerticalWallRunning);
-            return;
-        }
-
         SetState(PlayerState.Idle);
     }
 
@@ -161,7 +166,7 @@ public class PlayerStateMachine : MonoBehaviour
 
     private bool TryHandleWallJump()
     {
-        if (!wallJump.JumpedFromWall) return false;
+        if (!wallJump.JumpedFromWall && !verticalWallRun.JumpedFromVerticalWall) return false;
 
         SetState(PlayerState.Jumping);
         return true;
@@ -205,6 +210,53 @@ public class PlayerStateMachine : MonoBehaviour
             case PlayerState.VerticalWallRunning:
                 
                 break;
+        }
+    }
+
+    // -------------------------------------------------------
+    // ROTACIÓN
+    // -------------------------------------------------------
+
+    private void HandleRotation()
+    {
+        Vector3 targetDirection = GetRotationTarget();
+        if (targetDirection.sqrMagnitude < 0.01f) return;
+
+        Quaternion targetRotation = Quaternion.LookRotation(targetDirection);
+        transform.rotation = Quaternion.Slerp(
+            transform.rotation,
+            targetRotation,
+            data.rotationSpeed * Time.deltaTime
+        );
+    }
+
+    private Vector3 GetRotationTarget()
+    {
+        switch (CurrentState)
+        {
+            case PlayerState.Running:
+            case PlayerState.Sprinting:
+                // Rotar hacia la dirección de input
+                return moveDirection;
+
+            case PlayerState.Jumping:
+            case PlayerState.Falling:
+                // Usar la velocidad real — captura la dirección del wall jump automáticamente
+                Vector3 horizontalVel = new Vector3(motor.Velocity.x, 0f, motor.Velocity.z);
+                if (horizontalVel.magnitude > 0.5f) return horizontalVel.normalized;
+                return moveDirection;
+
+            case PlayerState.WallRunning:
+                // Rotar hacia la dirección de desplazamiento lateral en la pared
+                Vector3 wallRunVel = new Vector3(motor.Velocity.x, 0f, motor.Velocity.z);
+                if (wallRunVel.magnitude > 0.1f) return wallRunVel.normalized;
+                return Vector3.zero;
+
+            // VerticalWallRunning: el jugador ya enfrenta la pared para activarla, no rotar
+            // LedgeGrabbing: no rotar mientras está colgado o subiendo
+            // Idle: no hay dirección relevante
+            default:
+                return Vector3.zero;
         }
     }
 
