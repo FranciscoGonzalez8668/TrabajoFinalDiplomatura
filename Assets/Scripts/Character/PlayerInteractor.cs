@@ -1,0 +1,50 @@
+using UnityEngine;
+
+/// <summary>
+/// Detecta IInteractable cercanos y los activa cuando el jugador presiona E.
+/// Solo interactúa con el objeto más cercano dentro del rango.
+/// </summary>
+public class PlayerInteractor : MonoBehaviour
+{
+    [SerializeField] private InputHandler input;
+    [SerializeField] private float interactRange = 2f;
+    [SerializeField] private LayerMask interactLayer;
+
+    private void Update()
+    {
+        if (!input.InteractPressed) return;
+
+        IInteractable closest = FindClosest();
+        if (closest != null && closest.CanInteract)
+            closest.Interact();
+    }
+
+    private IInteractable FindClosest()
+    {
+        Collider[] hits = Physics.OverlapSphere(transform.position, interactRange, interactLayer);
+
+        IInteractable best    = null;
+        float         bestDist = float.MaxValue;
+
+        foreach (Collider hit in hits)
+        {
+            IInteractable interactable = hit.GetComponentInParent<IInteractable>();
+            if (interactable == null) continue;
+
+            float dist = Vector3.Distance(transform.position, hit.transform.position);
+            if (dist < bestDist)
+            {
+                bestDist = dist;
+                best     = interactable;
+            }
+        }
+
+        return best;
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawWireSphere(transform.position, interactRange);
+    }
+}

@@ -5,7 +5,7 @@ using System.Collections;
 /// Puede activarse y desactivarse desde afuera
 /// </summary>
 
-public class ObjectMover : MonoBehaviour
+public class ObjectMover : MonoBehaviour, IActivatable
 {
     public enum MoverType {Linear, Pendulum, PendulumBob, Vanishing}
 
@@ -183,8 +183,19 @@ public class ObjectMover : MonoBehaviour
         if(cachedCollider != null) cachedCollider.enabled = visible;
     }
 
-    public void Activate() => IsActive = true;
-    public void Deactivate() => IsActive = false;
+    /// <summary>Reanuda el movimiento desde donde se pausó.</summary>
+    public void Play() => IsActive = true;
 
+    /// <summary>Pausa el movimiento. El timer queda donde está.</summary>
+    public void Stop() => IsActive = false;
 
+    /// <summary>Vuelve a la posición y rotación iniciales. No inicia el movimiento — llamar Play() después si hace falta.</summary>
+    public void Reset()
+    {
+        IsActive = false;
+        timer    = 0f;
+        transform.position = startPosition;
+        transform.rotation = startRotation;
+        Physics.SyncTransforms();
+    }
 }

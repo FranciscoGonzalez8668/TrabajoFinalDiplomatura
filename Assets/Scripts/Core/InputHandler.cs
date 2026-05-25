@@ -15,6 +15,8 @@ public class InputHandler : MonoBehaviour
 
     public bool ClimbPressed {get; private set;}
 
+    public bool InteractPressed {get; private set;}
+
     void Update()
     {
         if (!InputEnabled)
@@ -36,6 +38,8 @@ public class InputHandler : MonoBehaviour
 
         //SlidePressed = Input.GetButtonDown("Slide");
         SlidePressed = false;
+
+        InteractPressed = Input.GetKeyDown(KeyCode.E);
     }
 
     public void SetInputEnabled(bool enabled)
@@ -55,6 +59,7 @@ public class InputHandler : MonoBehaviour
         SlidePressed = false;
         SprintHeld = false;
         ClimbPressed = false;
+        InteractPressed = false;
     }
 
 }

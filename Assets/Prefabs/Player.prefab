@@ -61,7 +61,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 082f8f43f2009ce489156dbf2b8f21fe, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -131,6 +131,7 @@ GameObject:
   - component: {fileID: 1389791778896684040}
   - component: {fileID: 1880065544}
   - component: {fileID: 5042230703151899111}
+  - component: {fileID: 1880065547}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -216,8 +217,9 @@ MonoBehaviour:
   input: {fileID: 5330014219788082587}
   cameraController: {fileID: 0}
   wallRun: {fileID: 5330014219788082590}
-  wallJump: {fileID: 0}
+  wallJump: {fileID: 5042230703151899111}
   ledgeGrab: {fileID: 1389791778896684040}
+  verticalWallRun: {fileID: 1880065547}
 --- !u!114 &5330014219788082590
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -266,6 +268,7 @@ MonoBehaviour:
   stateMachine: {fileID: 5330014219788082591}
   wallRun: {fileID: 5330014219788082590}
   wallJump: {fileID: 5042230703151899111}
+  verticalWallRun: {fileID: 1880065547}
   ledgeGrab: {fileID: 1389791778896684040}
   cameraController: {fileID: 0}
   respawnPoint: {fileID: 0}
@@ -282,6 +285,46 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fb3077247ea2ab942aba04c105860782, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  data: {fileID: 0}
-  motor: {fileID: 0}
-  input: {fileID: 0}
+  data: {fileID: 11400000, guid: b3f2af7b5b35ef34e9540048049434ca, type: 2}
+  motor: {fileID: 5330014219788082586}
+  input: {fileID: 5330014219788082587}
+--- !u!114 &1880065547
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5330014219788082580}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07d959a3a2520f74db412130266f779b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  data: {fileID: 11400000, guid: b3f2af7b5b35ef34e9540048049434ca, type: 2}
+  motor: {fileID: 5330014219788082586}
+  input: {fileID: 5330014219788082587}
+  cameraController: {fileID: 0}
+  speedCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: -0.06659255
+      outSlope: -0.06659255
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0.21339218
+    - serializedVersion: 3
+      time: 0.9999695
+      value: 0.0047302246
+      inSlope: -1.9313892
+      outSlope: -1.9313892
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.07111641
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4

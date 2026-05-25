@@ -50,6 +50,23 @@ public class PlayerRespawn : MonoBehaviour
         spawnRotation = newRespawnPoint.rotation;
     }
 
+    /// <summary>
+    /// Teletransporta al jugador al punto de respawn actual sin delay ni muerte.
+    /// Usado por LevelManager al cargar una escena o al ejecutar ReturnToSpawn.
+    /// </summary>
+    public void TeleportToSpawn()
+    {
+        // Si hay una muerte en curso, la cancelamos
+        if (respawnRoutine != null)
+        {
+            StopCoroutine(respawnRoutine);
+            respawnRoutine = null;
+        }
+
+        IsDead = false;
+        Respawn();
+    }
+
     public void Kill()
     {
         if (IsDead) return;

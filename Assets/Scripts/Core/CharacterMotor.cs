@@ -138,11 +138,26 @@ public class CharacterMotor : MonoBehaviour
     
     void CheckFrontWall()
     {
+        // Fan de 3 rays: centro + leve apertura izquierda/derecha
+        // Evita falsos negativos cuando el personaje está levemente desalineado con la pared
+        Vector3 slightLeft  = Quaternion.AngleAxis(-15f, Vector3.up) * transform.forward;
+        Vector3 slightRight = Quaternion.AngleAxis( 15f, Vector3.up) * transform.forward;
+
         RaycastHit hit;
-        if(Physics.Raycast(transform.position, transform.forward, out hit, data.wallDetectionDistance))
+        bool detected =
+            Physics.Raycast(transform.position, transform.forward, out hit, data.wallDetectionDistance) ||
+            Physics.Raycast(transform.position, slightLeft,        out hit, data.wallDetectionDistance) ||
+            Physics.Raycast(transform.position, slightRight,       out hit, data.wallDetectionDistance);
+
+        // Debug: verde = detectó, rojo = no detectó
+        Debug.DrawRay(transform.position, transform.forward  * data.wallDetectionDistance, detected ? Color.green : Color.red);
+        Debug.DrawRay(transform.position, slightLeft         * data.wallDetectionDistance, Color.yellow);
+        Debug.DrawRay(transform.position, slightRight        * data.wallDetectionDistance, Color.yellow);
+
+        if (detected)
         {
             float alignment = Vector3.Dot(transform.forward, -hit.normal);
-            if(alignment > data.frontWallThreshold) //Ajusta este umbral según
+            if(alignment > data.frontWallThreshold)
             {
                 IsFrontWall = true;
                 FrontWallNormal = hit.normal;
