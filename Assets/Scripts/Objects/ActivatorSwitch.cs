@@ -35,12 +35,32 @@ public class ActivatorSwitch : MonoBehaviour, IInteractable
     [Header("Estado inicial")]
     [SerializeField] private bool startActivated = false;
 
+    [Header("UI")]
+    [Tooltip("Texto del hint cuando el jugador puede interactuar. Ej: 'Activar Puerta'.")]
+    [SerializeField] private string hintText = "Activar";
+    [Tooltip("Mensaje al activar el switch. Deja vacío para no mostrar nada.")]
+    [SerializeField] private string activateMessage = "";
+    [Tooltip("Mensaje cuando el jugador presiona E pero le falta el item requerido.")]
+    [SerializeField] private string requiresItemMessage = "Necesitás un ítem para esto";
+
     private bool used;
     private bool isPlaying;
 
     public bool CanInteract =>
         (mode != SwitchMode.OneShot || !used) &&
         ItemRequirementMet();
+
+    public string HintText  => string.IsNullOrEmpty(hintText) ? "Activar" : hintText;
+
+    public string LockedText
+    {
+        get
+        {
+            if (requiresItem && !ItemRequirementMet())
+                return string.IsNullOrEmpty(requiresItemMessage) ? "Necesitás un ítem para esto" : requiresItemMessage;
+            return string.Empty;
+        }
+    }
 
     private bool ItemRequirementMet()
     {
@@ -77,6 +97,9 @@ public class ActivatorSwitch : MonoBehaviour, IInteractable
                 Activate();
                 break;
         }
+
+        if (!string.IsNullOrEmpty(activateMessage))
+            UIManager.Instance?.ShowNotification(activateMessage);
     }
 
     private void Activate()

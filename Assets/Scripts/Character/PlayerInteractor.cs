@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// Detecta IInteractable cercanos y los activa cuando el jugador presiona E.
-/// Solo interactúa con el objeto más cercano dentro del rango.
+/// Cada frame actualiza el hint de UI según el objeto más cercano en rango.
 /// </summary>
 public class PlayerInteractor : MonoBehaviour
 {
@@ -12,18 +12,35 @@ public class PlayerInteractor : MonoBehaviour
 
     private void Update()
     {
-        if (!input.InteractPressed) return;
+        IInteractable nearest = FindClosest();
+        UpdateHint(nearest);
 
-        IInteractable closest = FindClosest();
-        if (closest != null && closest.CanInteract)
-            closest.Interact();
+        if (!input.InteractPressed) return;
+        if (nearest == null) return;
+
+        if (nearest.CanInteract)
+        {
+            nearest.Interact();
+        }
+        else if (!string.IsNullOrEmpty(nearest.LockedText))
+        {
+            UIManager.Instance?.ShowNotification(nearest.LockedText);
+        }
+    }
+
+    private void UpdateHint(IInteractable nearest)
+    {
+        if (nearest != null && nearest.CanInteract && !string.IsNullOrEmpty(nearest.HintText))
+            UIManager.Instance?.SetInteractionHint(nearest.HintText);
+        else
+            UIManager.Instance?.ClearInteractionHint();
     }
 
     private IInteractable FindClosest()
     {
         Collider[] hits = Physics.OverlapSphere(transform.position, interactRange, interactLayer);
 
-        IInteractable best    = null;
+        IInteractable best     = null;
         float         bestDist = float.MaxValue;
 
         foreach (Collider hit in hits)

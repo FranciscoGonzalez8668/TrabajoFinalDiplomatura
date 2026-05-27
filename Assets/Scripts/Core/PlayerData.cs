@@ -36,6 +36,7 @@ public class PlayerData : ScriptableObject
     public float minWallRunHeight = 0.5f;
     public float wallRunUpBoost = 3f;
     public float verticalWallRunDuration = 0.5f;
+    public float verticalWallRunCooldown = 1.5f;
     public float frontWallThreshold = 0.7f;
 
     [Header("Ledge Grab")]

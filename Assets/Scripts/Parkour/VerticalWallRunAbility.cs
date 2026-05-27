@@ -25,18 +25,22 @@ public class VerticalWallRunAbility : MonoBehaviour, IMovementAbility
     public bool JumpedFromVerticalWall { get; private set; }
 
     private float wallRunTimer;
+    private float cooldownTimer;
     private bool hasLeftGround;
 
     public bool CanStart()
     {
-        // Resetear el flag de salto cuando ya no hay pared frontal
         if (JumpedFromVerticalWall && !motor.IsFrontWall)
             JumpedFromVerticalWall = false;
+
+        if (cooldownTimer > 0f)
+            cooldownTimer -= Time.deltaTime;
 
         return input.SprintHeld   &&
                motor.IsFrontWall  &&
                motor.IsGrounded   &&
-               !IsVerticalWallRunning;
+               !IsVerticalWallRunning &&
+               cooldownTimer <= 0f;
     }
 
     public void StartAbility()
@@ -109,6 +113,7 @@ public class VerticalWallRunAbility : MonoBehaviour, IMovementAbility
     {
         IsVerticalWallRunning = false;
         wallRunTimer          = 0f;
+        cooldownTimer         = data.verticalWallRunCooldown;
         motor.OverrideGravity = false;
         motor.SetVerticalVelocity(0f);
         motor.Stop();
@@ -117,6 +122,7 @@ public class VerticalWallRunAbility : MonoBehaviour, IMovementAbility
     public void ForceStop()
     {
         JumpedFromVerticalWall = false;
+        cooldownTimer          = 0f;
         StopAbility();
     }
 }
