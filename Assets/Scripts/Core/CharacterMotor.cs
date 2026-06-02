@@ -361,6 +361,23 @@ public class CharacterMotor : MonoBehaviour
         }
     }
 
+    private void OnDrawGizmosSelected()
+    {
+        if (data == null) return;
+
+        Vector3 slightLeft  = Quaternion.AngleAxis(-15f, Vector3.up) * transform.forward;
+        Vector3 slightRight = Quaternion.AngleAxis( 15f, Vector3.up) * transform.forward;
+
+        // Ray central — verde si detecta pared frontal, rojo si no
+        Gizmos.color = IsFrontWall ? Color.green : Color.red;
+        Gizmos.DrawRay(transform.position, transform.forward * data.wallDetectionDistance);
+
+        // Rays laterales del fan — amarillo
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawRay(transform.position, slightLeft  * data.wallDetectionDistance);
+        Gizmos.DrawRay(transform.position, slightRight * data.wallDetectionDistance);
+    }
+
     private void OnControllerColliderHit(ControllerColliderHit hit)
     {
         // Solo superficies que miran hacia arriba

@@ -262,6 +262,36 @@ public class LedgeGrabAbility : MonoBehaviour, IMovementAbility
     // DETECCIÓN DE BORDE
     // -------------------------------------------------------
 
+    private void OnDrawGizmosSelected()
+    {
+        if (data == null) return;
+
+        Vector3 chestPos = transform.position + Vector3.up * data.ledgeCheckHeightOffset;
+
+        // Ray 1 — detección de pared (rojo)
+        Gizmos.color = Color.red;
+        Gizmos.DrawRay(chestPos, transform.forward * data.ledgeDetectionDistance);
+        Gizmos.DrawSphere(chestPos, 0.04f);
+
+        // Ray 2 — detección de borde hacia abajo (verde)
+        // Origen estimado: justo delante del jugador a la altura máxima de agarre
+        Vector3 ray2Origin = new Vector3(
+            transform.position.x + transform.forward.x * data.ledgeDetectionDistance,
+            transform.position.y + data.ledgeGrabReach,
+            transform.position.z + transform.forward.z * data.ledgeDetectionDistance);
+
+        Gizmos.color = Color.green;
+        Gizmos.DrawRay(ray2Origin, Vector3.down * data.ledgeGrabReach);
+        Gizmos.DrawSphere(ray2Origin, 0.04f);
+
+        // Rango de agarre vertical (zona semitransparente)
+        Gizmos.color = new Color(0f, 1f, 0f, 0.15f);
+        Vector3 zoneCenter = transform.position
+                           + transform.forward * data.ledgeDetectionDistance
+                           + Vector3.up * (data.ledgeGrabReach * 0.5f);
+        Gizmos.DrawCube(zoneCenter, new Vector3(0.15f, data.ledgeGrabReach, 0.15f));
+    }
+
     private bool TryFindLedgeAtPosition(Vector3 characterPosition, Vector3 wallCheckDirection,
                                          out RaycastHit wallHit, out RaycastHit ledgeHit)
     {
