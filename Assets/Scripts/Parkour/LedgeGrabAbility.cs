@@ -25,6 +25,7 @@ public class LedgeGrabAbility : MonoBehaviour, IMovementAbility
     private bool isClimbing;
     private bool climbVerticalDone;
     private Vector3 climbTargetPosition;
+    private Vector3 localClimbTargetPosition;
     private float climbTimer;
 
     // Moving platform support
@@ -191,11 +192,22 @@ public class LedgeGrabAbility : MonoBehaviour, IMovementAbility
         climbVerticalDone   = false;
         climbTimer          = 0f;
         climbTargetPosition = transform.position - wallNormal * 0.6f;
+
+        // Si está en plataforma móvil, guardar el target en local space para actualizarlo cada frame
+        if (attachedPlatform != null)
+            localClimbTargetPosition = attachedPlatform.InverseTransformPoint(climbTargetPosition);
     }
 
     private void UpdateClimb()
     {
         climbTimer += Time.deltaTime;
+
+        // Actualizar posiciones world-space desde local space si está en plataforma móvil
+        if (attachedPlatform != null)
+        {
+            ledgeTopPoint       = attachedPlatform.TransformPoint(localLedgeTopPoint);
+            climbTargetPosition = attachedPlatform.TransformPoint(localClimbTargetPosition);
+        }
 
         // Fase 1: subir hasta que los pies superen el borde
         if (!climbVerticalDone)

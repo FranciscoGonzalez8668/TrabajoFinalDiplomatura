@@ -7,7 +7,7 @@ using System.Collections;
 
 public class ObjectMover : MonoBehaviour, IActivatable
 {
-    public enum MoverType {Linear, Pendulum, PendulumBob, Vanishing}
+    public enum MoverType { Linear, Pendulum, PendulumBob, Vanishing }
 
     [Header( "General")]
     [SerializeField] private MoverType type = MoverType.Linear;
@@ -23,7 +23,6 @@ public class ObjectMover : MonoBehaviour, IActivatable
     [Header("Pendulum (rotación sobre eje propio)")]
     [SerializeField] private Vector3 pivotAxis = Vector3.right * 2f;
     [SerializeField] private float maxAngle = 45f;
-    [SerializeField] private float cycleDuration = 2f;
 
     [Header("PendulumBob (traslación en arco desde punto de suspensión)")]
     [Tooltip("Vector desde el objeto hasta el punto de suspensión. Ej: Vector3.up * 4 = pivote 4u arriba.")]
@@ -51,8 +50,9 @@ public class ObjectMover : MonoBehaviour, IActivatable
     private float timer; 
 
     private bool isVanished;
-    private Renderer cachedRenderer;
-    private Collider cachedCollider;
+    private Renderer  cachedRenderer;
+    private Collider  cachedCollider;
+    private NeonEdges cachedNeonEdges;
 
 
     public bool IsActive { get; private set; }
@@ -67,6 +67,7 @@ public class ObjectMover : MonoBehaviour, IActivatable
         {
             cachedRenderer = GetComponent<Renderer>();
             cachedCollider = GetComponent<Collider>();
+            cachedNeonEdges = GetComponent<NeonEdges>();
         }
     }
 
@@ -119,9 +120,8 @@ public class ObjectMover : MonoBehaviour, IActivatable
 
     private void UpdatePendulum()
     {
-        
         timer += Time.deltaTime;
-        float normalizedTime = (timer % cycleDuration) / cycleDuration;
+        float normalizedTime = (timer % duration) / duration;
         float angle = pendulumCurve.Evaluate(normalizedTime) * maxAngle;
         transform.rotation = startRotation * Quaternion.AngleAxis(angle, pivotAxis.normalized);
         Physics.SyncTransforms();
@@ -134,7 +134,7 @@ public class ObjectMover : MonoBehaviour, IActivatable
     private void UpdatePendulumBob()
     {
         timer += Time.deltaTime;
-        float normalizedTime = (timer % cycleDuration) / cycleDuration;
+        float normalizedTime = (timer % duration) / duration;
         float angle = pendulumCurve.Evaluate(normalizedTime) * maxAngle;
 
         // Punto de suspensión fijo en world space
@@ -179,8 +179,9 @@ public class ObjectMover : MonoBehaviour, IActivatable
 
     private void SetVisible(bool visible)
     {
-        if(cachedRenderer != null) cachedRenderer.enabled = visible;
-        if(cachedCollider != null) cachedCollider.enabled = visible;
+        if(cachedRenderer  != null) cachedRenderer.enabled  = visible;
+        if(cachedCollider  != null) cachedCollider.enabled  = visible;
+        if(cachedNeonEdges != null) cachedNeonEdges.enabled = visible;
     }
 
     /// <summary>Reanuda el movimiento desde donde se pausó.</summary>

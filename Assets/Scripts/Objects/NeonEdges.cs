@@ -16,7 +16,16 @@ public class NeonEdges : MonoBehaviour
     [SerializeField] private Material overrideMaterial;
     [SerializeField] private float    overrideThickness = 0.05f;
 
-    private Material ActiveMaterial => overrideGlobal ? overrideMaterial : config?.edgeMaterial;
+    public bool      HasConfig        => config != null;
+
+    // Override en runtime — no serializado, se usa para efectos temporales del jugador
+    private Material runtimeMaterial;
+    public void SetRuntimeMaterial(Material mat) { runtimeMaterial = mat; }
+    public void ClearRuntimeMaterial()           { runtimeMaterial = null; }
+
+    private Material ActiveMaterial  => runtimeMaterial != null ? runtimeMaterial :
+                                        overrideGlobal   ? overrideMaterial :
+                                        config?.edgeMaterial;
     private float    ActiveThickness => overrideGlobal ? overrideThickness : config?.edgeThickness ?? 0.05f;
 
     private Vector3  lastScale;
@@ -107,9 +116,13 @@ public class NeonEdges : MonoBehaviour
         if (edgesContainer != null)
             DestroyImmediate(edgesContainer);
 
-        Transform existing = transform.Find("_NeonEdges");
-        if (existing != null)
-            DestroyImmediate(existing.gameObject);
+        // Destruir TODOS los hijos _NeonEdges (puede haber más de uno por duplicados)
+        for (int i = transform.childCount - 1; i >= 0; i--)
+        {
+            Transform child = transform.GetChild(i);
+            if (child.name == "_NeonEdges")
+                DestroyImmediate(child.gameObject);
+        }
 
         edgesContainer = null;
     }

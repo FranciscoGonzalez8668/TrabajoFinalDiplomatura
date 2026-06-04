@@ -50,7 +50,7 @@ public class PickableItem : MonoBehaviour, IInteractable
 
     private void SetVisible(bool visible)
     {
-        foreach (Renderer r in rends) r.enabled = visible;
-        foreach (Collider c in cols)  c.enabled = visible;
+        foreach (Renderer r in rends) if (r != null) r.enabled = visible;
+        foreach (Collider c in cols)  if (c != null) c.enabled = visible;
     }
 }

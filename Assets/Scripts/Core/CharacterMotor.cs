@@ -30,30 +30,30 @@ public class CharacterMotor : MonoBehaviour
     private Vector3 velocity;
     private float verticalVelocity;
 
-    // Plataformas móviles
+    // Plataformas móviles — delta tracking sin parenting (evita herencia de escala)
     private Transform currentSurface;
-    private float platformLostTimer;
+    private Vector3    lastSurfacePosition;
+    private float      platformLostTimer;
     private const float PlatformGraceTime = 0.12f;
 
     /// <summary>
-    /// Cuando está en true, el timer de gracia no libera el parenting.
+    /// Cuando está en true, el timer de gracia no libera la superficie.
     /// Usado por LedgeGrabAbility mientras el jugador está colgado.
     /// </summary>
     public bool SurfaceLocked { get; set; }
 
     public void AttachToSurface(Transform surface)
     {
-        currentSurface = surface;
-        platformLostTimer = 0f;
-        transform.SetParent(surface);
+        currentSurface      = surface;
+        lastSurfacePosition = surface.position;
+        platformLostTimer   = 0f;
     }
 
     public void DetachFromSurface()
     {
-        SurfaceLocked = false;
-        currentSurface = null;
+        SurfaceLocked     = false;
+        currentSurface    = null;
         platformLostTimer = 0f;
-        transform.SetParent(null);
     }
 
     //Coyote Time
@@ -75,6 +75,7 @@ public class CharacterMotor : MonoBehaviour
         CheckWall();
         HandleCoyoteTime();
         HandleJumpBuffer();
+        ApplyPlatformMovement();
         ApplyMovement();
     }
 
@@ -98,10 +99,7 @@ public class CharacterMotor : MonoBehaviour
         {
             platformLostTimer += Time.deltaTime;
             if (platformLostTimer >= PlatformGraceTime)
-            {
                 currentSurface = null;
-                transform.SetParent(null);
-            }
         }
     }
 
@@ -118,13 +116,19 @@ public class CharacterMotor : MonoBehaviour
         Vector3 diagRight = (transform.forward + transform.right).normalized;
         Vector3 diagLeft  = (transform.forward - transform.right).normalized;
 
-        // Prioridad: laterales → diagonales → frontal
-        RaycastHit hit;
-        if      (Physics.Raycast(transform.position,  transform.right,   out hit, data.wallDetectionDistance) ||
-                 Physics.Raycast(transform.position, -transform.right,   out hit, data.wallDetectionDistance) ||
-                 Physics.Raycast(transform.position,  diagRight,         out hit, data.wallDetectionDistance) ||
-                 Physics.Raycast(transform.position,  diagLeft,          out hit, data.wallDetectionDistance) ||
-                 Physics.Raycast(transform.position,  transform.forward, out hit, data.wallDetectionDistance))
+        RaycastHit hit = default;
+
+        // Raycast extra en la dirección de la última normal conocida
+        // Evita que una leve rotación del personaje rompa la detección durante el wall run
+        bool stickyCheck = WallNormal != Vector3.zero &&
+                           Physics.Raycast(transform.position, -WallNormal, out hit, data.wallDetectionDistance);
+
+        if (stickyCheck                                                                                          ||
+            Physics.Raycast(transform.position,  transform.right,   out hit, data.wallDetectionDistance) ||
+            Physics.Raycast(transform.position, -transform.right,   out hit, data.wallDetectionDistance) ||
+            Physics.Raycast(transform.position,  diagRight,         out hit, data.wallDetectionDistance) ||
+            Physics.Raycast(transform.position,  diagLeft,          out hit, data.wallDetectionDistance) ||
+            Physics.Raycast(transform.position,  transform.forward, out hit, data.wallDetectionDistance))
         {
             IsTouchingWall = true;
             WallNormal = hit.normal;
@@ -342,6 +346,19 @@ public class CharacterMotor : MonoBehaviour
     }
 
 
+    // Movimiento con plataformas — delta tracking sin parenting
+
+    private void ApplyPlatformMovement()
+    {
+        if (currentSurface == null) return;
+
+        Vector3 delta = currentSurface.position - lastSurfacePosition;
+        if (delta != Vector3.zero)
+            cc.Move(delta);
+
+        lastSurfacePosition = currentSurface.position;
+    }
+
     //Apply on Character Controller
 
     void ApplyMovement()
@@ -389,10 +406,10 @@ public class CharacterMotor : MonoBehaviour
         // Notificar contacto — usado por plataformas Vanishing
         mover.NotifyPlayerContact();
 
-        // Parenting para plataformas móviles (Linear / Pendulum)
+        // Registrar la superficie para delta tracking (sin parenting)
         if (currentSurface == hit.transform) return;
-        currentSurface = hit.transform;
-        platformLostTimer = 0f;
-        transform.SetParent(hit.transform);
+        currentSurface      = hit.transform;
+        lastSurfacePosition = hit.transform.position;
+        platformLostTimer   = 0f;
     }
 }

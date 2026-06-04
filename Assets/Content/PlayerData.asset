@@ -12,27 +12,30 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6c311061556e85d448e7b9afb9bc9ac2, type: 3}
   m_Name: PlayerData
   m_EditorClassIdentifier: 
-  moveSpeed: 7
+  moveSpeed: 10
   acceleration: 20
   deceleration: 15
-  sprintSpeed: 10
-  sprintAcceleration: 30
-  jumpHeight: 4
+  rotationSpeed: 12
+  sprintSpeed: 15
+  sprintAcceleration: 24
+  jumpHeight: 3
   coyoteTime: 0.15
   jumpBufferTime: 0.12
   wallJumpSpeed: 15
-  wallJumpForce: 15
-  wallJumpHeight: 1.5
+  wallJumpForce: 20
+  wallJumpHeight: 2
   gravityScale: 2.5
   fallMultiplier: 2
   maxFallSpeed: 20
-  wallRunSpeed: 10
-  horizontalWallRunDuration: 1.5
+  wallRunSpeed: 13
+  verticalWallRunSpeed: 10
+  horizontalWallRunDuration: 1
   wallDetectionDistance: 0.6
   wallRunGravity: 0.1
-  minWallRunHeight: 0.5
+  minWallRunHeight: 1
   wallRunUpBoost: 3
   verticalWallRunDuration: 1
+  verticalWallRunCooldown: 1
   frontWallThreshold: 0.7
   ledgeDetectionDistance: 0.8
   ledgeGrabReach: 1.5

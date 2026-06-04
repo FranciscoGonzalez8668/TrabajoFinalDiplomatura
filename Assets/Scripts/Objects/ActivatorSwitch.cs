@@ -22,8 +22,11 @@ public class ActivatorSwitch : MonoBehaviour, IInteractable
     [Header("Configuración")]
     [SerializeField] private SwitchMode mode = SwitchMode.OneShot;
 
-    [Tooltip("Arrastrá cualquier componente que implemente IActivatable (ObjectMover, ToggleObject, etc.)")]
-    [SerializeField] private MonoBehaviour[] targets;
+    [Tooltip("Plataformas y objetos móviles a controlar.")]
+    [SerializeField] private ObjectMover[] objectMovers;
+
+    [Tooltip("Objetos que aparecen/desaparecen al activar.")]
+    [SerializeField] private ToggleObject[] toggleObjects;
 
     [Header("Requerimiento")]
     [Tooltip("Activá si este switch requiere que el jugador tenga un item.")]
@@ -92,8 +95,7 @@ public class ActivatorSwitch : MonoBehaviour, IInteractable
                 break;
 
             case SwitchMode.Restart:
-                foreach (MonoBehaviour t in targets)
-                    (t as IActivatable)?.Reset();
+                ForEachTarget(t => t.Reset());
                 Activate();
                 break;
         }
@@ -105,14 +107,23 @@ public class ActivatorSwitch : MonoBehaviour, IInteractable
     private void Activate()
     {
         isPlaying = true;
-        foreach (MonoBehaviour t in targets)
-            (t as IActivatable)?.Play();
+        ForEachTarget(t => t.Play());
     }
 
     private void Deactivate()
     {
         isPlaying = false;
-        foreach (MonoBehaviour t in targets)
-            (t as IActivatable)?.Stop();
+        ForEachTarget(t => t.Stop());
+    }
+
+    private void ForEachTarget(System.Action<IActivatable> action)
+    {
+        if (objectMovers != null)
+            foreach (ObjectMover m in objectMovers)
+                if (m != null) action(m);
+
+        if (toggleObjects != null)
+            foreach (ToggleObject t in toggleObjects)
+                if (t != null) action(t);
     }
 }

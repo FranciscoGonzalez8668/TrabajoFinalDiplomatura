@@ -30,6 +30,7 @@ public class PlayerData : ScriptableObject
 
     [Header("Wall Run")]
     public float wallRunSpeed = 8f;
+    public float verticalWallRunSpeed = 6f;
     public float horizontalWallRunDuration = 1.5f;
     public float wallDetectionDistance = 0.6f;
     public float wallRunGravity = 0.3f;

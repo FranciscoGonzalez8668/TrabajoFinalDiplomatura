@@ -76,7 +76,7 @@ public class VerticalWallRunAbility : MonoBehaviour, IMovementAbility
         }
 
         float normalizedTime = wallRunTimer / data.verticalWallRunDuration;
-        float verticalSpeed  = speedCurve.Evaluate(normalizedTime) * data.wallRunSpeed;
+        float verticalSpeed  = speedCurve.Evaluate(normalizedTime) * data.verticalWallRunSpeed;
         motor.SetVerticalVelocity(verticalSpeed);
 
         wallRunTimer += Time.deltaTime;
