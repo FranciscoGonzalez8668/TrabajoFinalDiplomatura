@@ -62,7 +62,8 @@ public class CharacterMotor : MonoBehaviour
 
     //Jump Buffer
     private float jumpBufferTimer;
-    private bool jumpBuffered => jumpBufferTimer >0f;
+    private bool jumpBuffered => jumpBufferTimer > 0f;
+    public bool JumpBuffered => jumpBuffered;
 
     void Awake()
     {

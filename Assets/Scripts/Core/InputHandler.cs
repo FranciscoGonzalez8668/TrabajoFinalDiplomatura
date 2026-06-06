@@ -31,8 +31,8 @@ public class InputHandler : MonoBehaviour
         );
 
 
-        JumpPressed = Input.GetButtonDown("Jump");
-        JumpHeld = Input.GetButton("Jump");
+        JumpPressed = Input.GetKeyDown(KeyCode.Space);
+        JumpHeld    = Input.GetKey(KeyCode.Space);
         SprintHeld = Input.GetKey(KeyCode.LeftShift);
         ClimbPressed = Input.GetKeyDown(KeyCode.LeftShift);
 

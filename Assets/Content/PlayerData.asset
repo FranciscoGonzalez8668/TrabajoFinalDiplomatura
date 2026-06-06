@@ -18,7 +18,7 @@ MonoBehaviour:
   rotationSpeed: 12
   sprintSpeed: 15
   sprintAcceleration: 24
-  jumpHeight: 3
+  jumpHeight: 10
   coyoteTime: 0.15
   jumpBufferTime: 0.12
   wallJumpSpeed: 15

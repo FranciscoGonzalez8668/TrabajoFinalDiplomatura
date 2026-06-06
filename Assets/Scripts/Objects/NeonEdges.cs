@@ -63,6 +63,7 @@ public class NeonEdges : MonoBehaviour
         if (ActiveMaterial == null) return;
 
         edgesContainer = new GameObject("_NeonEdges");
+        edgesContainer.hideFlags = HideFlags.DontSave;
         edgesContainer.transform.SetParent(transform, false);
         edgesContainer.transform.localPosition = Vector3.zero;
         edgesContainer.transform.localRotation = Quaternion.identity;

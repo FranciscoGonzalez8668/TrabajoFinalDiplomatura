@@ -11,6 +11,7 @@ public class LedgeGrabAbility : MonoBehaviour, IMovementAbility
     [SerializeField] private CharacterMotor motor;
     [SerializeField] private InputHandler input;
     [SerializeField] private PlayerStateMachine stateMachine;
+    [SerializeField] private CameraController cameraController;
 
     public bool IsActive => IsLedgeGrabbing;
     public bool IsLedgeGrabbing { get; private set; }
@@ -118,9 +119,21 @@ public class LedgeGrabAbility : MonoBehaviour, IMovementAbility
         motor.MoveVerticalTo(hangPosition.y);
         motor.SetVerticalVelocity(0f);
 
-        // Shimmy lateral: moverse a lo largo del borde
+        // Shimmy: W mueve en la dirección de la cámara proyectada sobre la pared
+        // A/D mueven lateralmente respecto a la cámara proyectada sobre la pared
         Vector3 ledgeDirection = Vector3.Cross(wallNormal, Vector3.up).normalized;
-        Vector3 moveAlongLedge = ledgeDirection * input.MoveInput.x;
+        Vector3 moveAlongLedge;
+
+        if (cameraController != null)
+        {
+            Vector3 camFwdOnWall    = Vector3.ProjectOnPlane(cameraController.CameraForward, wallNormal).normalized;
+            Vector3 camRightOnWall  = Vector3.ProjectOnPlane(cameraController.CameraRight,   wallNormal).normalized;
+            moveAlongLedge = (camFwdOnWall * input.MoveInput.y + camRightOnWall * input.MoveInput.x);
+        }
+        else
+        {
+            moveAlongLedge = ledgeDirection * input.MoveInput.x;
+        }
 
         if (moveAlongLedge.magnitude > 0.1f)
         {
@@ -149,7 +162,7 @@ public class LedgeGrabAbility : MonoBehaviour, IMovementAbility
             motor.Stop();
         }
 
-        if (input.ClimbPressed)
+        if (input.ClimbPressed && HasSpaceToClimb())
         {
             StartClimb();
             return;
@@ -253,21 +266,20 @@ public class LedgeGrabAbility : MonoBehaviour, IMovementAbility
         motor.DetachFromSurface();
         StopLedgeGrab();
 
-        float gravity       = Physics.gravity.y;
-        float jumpVelocity  = 2f * Mathf.Abs(gravity) * motor.GravityScale * data.wallJumpHeight;
+        float gravity      = Physics.gravity.y;
+        float jumpVelocity = 2f * Mathf.Abs(gravity) * motor.GravityScale * data.wallJumpHeight;
         motor.SetVerticalVelocity(Mathf.Sqrt(jumpVelocity));
 
+        // Siempre salimos alejados de la pared
+        // El input lateral (A/D relativo a la cámara) agrega dirección diagonal
         Vector3 wallOut = new Vector3(wallNormal.x, 0f, wallNormal.z).normalized;
 
-        if (Mathf.Abs(input.MoveInput.x) > 0.1f)
-        {
-            Vector3 lateralDir = Vector3.Cross(wallNormal, Vector3.up).normalized;
-            motor.SetHorizontalVelocity(lateralDir * Mathf.Sign(input.MoveInput.x), data.wallJumpSpeed);
-        }
-        else
-        {
-            motor.SetHorizontalVelocity(wallOut, data.wallJumpSpeed);
-        }
+        Vector3 lateral = Vector3.zero;
+        if (cameraController != null && Mathf.Abs(input.MoveInput.x) > 0.1f)
+            lateral = cameraController.CameraRight * input.MoveInput.x;
+
+        Vector3 finalJumpDir = (wallOut + lateral).normalized;
+        motor.SetHorizontalVelocity(finalJumpDir, data.wallJumpSpeed);
     }
 
     // -------------------------------------------------------
@@ -302,6 +314,19 @@ public class LedgeGrabAbility : MonoBehaviour, IMovementAbility
                            + transform.forward * data.ledgeDetectionDistance
                            + Vector3.up * (data.ledgeGrabReach * 0.5f);
         Gizmos.DrawCube(zoneCenter, new Vector3(0.15f, data.ledgeGrabReach, 0.15f));
+    }
+
+    /// <summary>
+    /// Verifica que haya suficiente espacio vertical sobre el borde para que el jugador pueda subir.
+    /// Evita trepar a superficies muy pequeñas donde el personaje quedaría encajado.
+    /// </summary>
+    private bool HasSpaceToClimb()
+    {
+        float requiredHeight = motor.HalfHeight * 2f;
+        Vector3 checkOrigin  = ledgeTopPoint + Vector3.up * 0.1f;
+
+        bool blocked = Physics.SphereCast(checkOrigin, 0.2f, Vector3.up, out _, requiredHeight);
+        return !blocked;
     }
 
     private bool TryFindLedgeAtPosition(Vector3 characterPosition, Vector3 wallCheckDirection,

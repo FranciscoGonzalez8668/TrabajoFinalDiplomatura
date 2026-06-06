@@ -19,6 +19,9 @@ public class PlayerData : ScriptableObject
     public float jumpHeight = 5f;
     public float coyoteTime = 0.15f;
     public float jumpBufferTime = 0.12f;
+    public float airControlSpeed = 6f;
+    public float airControlAcceleration = 8f;
+    public float airDeceleration = 3f;
     public float wallJumpSpeed = 7f;
     public float wallJumpForce = 3f;
     public float wallJumpHeight = 1.5f;

@@ -157,8 +157,8 @@ public class PlayerStateMachine : MonoBehaviour
 
     private bool TryHandleJump()
     {
-        if (!input.JumpPressed) return false;
-        if (!motor.TryJump())   return false;
+        if (!input.JumpPressed && !motor.JumpBuffered) return false;
+        if (!motor.TryJump()) return false;
 
         SetState(PlayerState.Jumping);
         return true;
@@ -195,9 +195,11 @@ public class PlayerStateMachine : MonoBehaviour
             case PlayerState.Jumping:
             case PlayerState.Falling:
                 if (moveDirection.magnitude > 0.1f)
-                    motor.Move(moveDirection, data.moveSpeed * 0.8f);
+                    // Control aéreo reducido — acelera más lento para no cortar el momentum
+                    motor.Move(moveDirection, data.airControlSpeed, data.airControlAcceleration);
                 else
-                    motor.Decelerate();
+                    // Sin input: desacelera suave para preservar la dirección del salto
+                    motor.Move(motor.Velocity.normalized, motor.Velocity.magnitude, data.airDeceleration);
                 break;
 
             case PlayerState.WallRunning:

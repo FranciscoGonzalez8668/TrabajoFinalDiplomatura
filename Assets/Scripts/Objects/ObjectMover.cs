@@ -15,7 +15,7 @@ public class ObjectMover : MonoBehaviour, IActivatable
 
     [Header("Linear")]
     [SerializeField] private Vector3 offset = Vector3.right*2;
-    [SerializeField] private float duration = 2f;
+    [SerializeField] private float duration = 2f; 
     [SerializeField] private bool loop = true;
     [SerializeField] private AnimationCurve movementCurve = AnimationCurve.EaseInOut(0f,0f,1f,1f);
     
@@ -40,16 +40,18 @@ public class ObjectMover : MonoBehaviour, IActivatable
     );
 
     [Header("Vanishing")]
-    [SerializeField] private float vanishDelay = 0.5f;
-    [SerializeField] private float respawnTime = 3f;
+    [SerializeField] private float    vanishDelay      = 0.5f;
+    [SerializeField] private float    respawnTime      = 3f;
+    [SerializeField] private Material vanishingMaterial;
+    [SerializeField] private float    flickerSpeed     = 12f;
 
-
-    private Vector3 startPosition;
+    private Vector3    startPosition;
     private Quaternion startRotation;
+    private float      timer;
 
-    private float timer; 
-
-    private bool isVanished;
+    private bool      isVanished;
+    private bool      isFlickering;
+    private float     flickerTimer;
     private Renderer  cachedRenderer;
     private Collider  cachedCollider;
     private NeonEdges cachedNeonEdges;
@@ -65,14 +67,15 @@ public class ObjectMover : MonoBehaviour, IActivatable
 
         if(type == MoverType.Vanishing)
         {
-            cachedRenderer = GetComponent<Renderer>();
-            cachedCollider = GetComponent<Collider>();
+            cachedRenderer  = GetComponent<Renderer>();
+            cachedCollider  = GetComponent<Collider>();
             cachedNeonEdges = GetComponent<NeonEdges>();
         }
     }
 
     private void Update()
     {
+        if (isFlickering) UpdateFlicker();
         if(!IsActive || isVanished) return;
         switch (type)
         {
@@ -86,6 +89,13 @@ public class ObjectMover : MonoBehaviour, IActivatable
                 UpdatePendulumBob();
                 break;
         }
+    }
+
+    private void UpdateFlicker()
+    {
+        if (cachedNeonEdges == null) return;
+        flickerTimer += Time.deltaTime * flickerSpeed;
+        cachedNeonEdges.enabled = Mathf.Sin(flickerTimer * Mathf.PI) > 0f;
     }
 
 
@@ -169,11 +179,25 @@ public class ObjectMover : MonoBehaviour, IActivatable
     {
         isVanished = true;
 
+        // Titilado antes de desaparecer
+        isFlickering  = true;
+        flickerTimer  = 0f;
+        if (cachedNeonEdges != null && vanishingMaterial != null)
+            cachedNeonEdges.SetRuntimeMaterial(vanishingMaterial);
+
         yield return new WaitForSeconds(vanishDelay);
+
+        // Dejar de titilar y desaparecer
+        isFlickering = false;
+        if (cachedNeonEdges != null)
+        {
+            cachedNeonEdges.enabled = true;
+            cachedNeonEdges.ClearRuntimeMaterial();
+        }
         SetVisible(false);
 
         yield return new WaitForSeconds(respawnTime);
-        isVanished = false;   // Debe resetearse ANTES de re-habilitar para que el próximo piso active el trigger
+        isVanished = false;
         SetVisible(true);
     }
 
