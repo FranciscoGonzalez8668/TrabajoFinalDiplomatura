@@ -25,8 +25,13 @@ public class PlayerRespawn : MonoBehaviour
     public bool IsDead { get; private set; }
 
     private Coroutine respawnRoutine;
-    private Vector3 spawnPosition;
+    private Vector3    spawnPosition;
     private Quaternion spawnRotation;
+
+    // Punto inicial del nivel — no cambia con los checkpoints
+    private Transform  levelStartPoint;
+    private Vector3    levelStartPosition;
+    private Quaternion levelStartRotation;
 
     private void Awake()
     {
@@ -34,11 +39,16 @@ public class PlayerRespawn : MonoBehaviour
         {
             spawnPosition = respawnPoint.position;
             spawnRotation = respawnPoint.rotation;
-            return;
+        }
+        else
+        {
+            spawnPosition = transform.position;
+            spawnRotation = transform.rotation;
         }
 
-        spawnPosition = transform.position;
-        spawnRotation = transform.rotation;
+        levelStartPoint    = respawnPoint;
+        levelStartPosition = spawnPosition;
+        levelStartRotation = spawnRotation;
     }
 
     public void SetRespawnPoint(Transform newRespawnPoint)
@@ -48,6 +58,16 @@ public class PlayerRespawn : MonoBehaviour
         respawnPoint  = newRespawnPoint;
         spawnPosition = newRespawnPoint.position;
         spawnRotation = newRespawnPoint.rotation;
+    }
+
+    /// <summary>
+    /// Vuelve el punto de respawn al inicio del nivel, descartando todos los checkpoints activados.
+    /// </summary>
+    public void ResetToLevelStart()
+    {
+        respawnPoint  = levelStartPoint;
+        spawnPosition = levelStartPosition;
+        spawnRotation = levelStartRotation;
     }
 
     /// <summary>
@@ -122,5 +142,26 @@ public class PlayerRespawn : MonoBehaviour
             StopCoroutine(respawnRoutine);
             respawnRoutine = null;
         }
+    }
+
+    private void OnDrawGizmos()
+    {
+        Transform t = respawnPoint != null ? respawnPoint : transform;
+        Gizmos.color = new Color(1f, 0.6f, 0.1f);
+
+        const int segments = 24;
+        for (int i = 0; i < segments; i++)
+        {
+            float   a0 = i       * Mathf.PI * 2f / segments;
+            float   a1 = (i + 1) * Mathf.PI * 2f / segments;
+            Vector3 p0 = t.position + new Vector3(Mathf.Cos(a0), 0f, Mathf.Sin(a0)) * 0.4f;
+            Vector3 p1 = t.position + new Vector3(Mathf.Cos(a1), 0f, Mathf.Sin(a1)) * 0.4f;
+            Gizmos.DrawLine(p0, p1);
+        }
+
+        Vector3 tip = t.position + t.forward * 0.7f;
+        Gizmos.DrawLine(t.position, tip);
+        Gizmos.DrawLine(tip, tip - t.forward * 0.2f + t.right * 0.12f);
+        Gizmos.DrawLine(tip, tip - t.forward * 0.2f - t.right * 0.12f);
     }
 }

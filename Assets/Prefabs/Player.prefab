@@ -255,6 +255,8 @@ GameObject:
   - component: {fileID: 5042230703151899111}
   - component: {fileID: 1880065547}
   - component: {fileID: 1880065548}
+  - component: {fileID: 5330014218627034013}
+  - component: {fileID: 5330014218627034021}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -311,6 +313,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   data: {fileID: 11400000, guid: b3f2af7b5b35ef34e9540048049434ca, type: 2}
   input: {fileID: 5330014219788082587}
+  wallDetectionMask:
+    serializedVersion: 2
+    m_Bits: 4294967163
 --- !u!114 &5330014219788082587
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -343,6 +348,7 @@ MonoBehaviour:
   wallJump: {fileID: 5042230703151899111}
   ledgeGrab: {fileID: 1389791778896684040}
   verticalWallRun: {fileID: 1880065547}
+  neonFlasher: {fileID: 5330014218627034021}
 --- !u!114 &5330014219788082590
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -374,6 +380,8 @@ MonoBehaviour:
   motor: {fileID: 5330014219788082586}
   input: {fileID: 5330014219788082587}
   stateMachine: {fileID: 5330014219788082591}
+  cameraController: {fileID: 0}
+  neonFlasher: {fileID: 5330014218627034021}
 --- !u!114 &1880065544
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -411,6 +419,7 @@ MonoBehaviour:
   data: {fileID: 11400000, guid: b3f2af7b5b35ef34e9540048049434ca, type: 2}
   motor: {fileID: 5330014219788082586}
   input: {fileID: 5330014219788082587}
+  neonFlasher: {fileID: 5330014218627034021}
 --- !u!114 &1880065547
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -468,6 +477,36 @@ MonoBehaviour:
   interactLayer:
     serializedVersion: 2
     m_Bits: 64
+--- !u!114 &5330014218627034013
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5330014219788082580}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e16d5aa17feb78e40bf6389cf274de70, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  stateMachine: {fileID: 5330014219788082591}
+  motor: {fileID: 5330014219788082586}
+  wallActiveMaterial: {fileID: 2100000, guid: 0063068c290bdc14ca956eeddbeaac33, type: 2}
+  revertDelay: 0.2
+--- !u!114 &5330014218627034021
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5330014219788082580}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 593f01723a4efe344ac7a9e40a6c6842, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  flashMaterial: {fileID: 2100000, guid: 86a2e7301d085f8419b7855d922eaea2, type: 2}
+  flashDuration: 0.35
 --- !u!1 &5497480671790120262
 GameObject:
   m_ObjectHideFlags: 0

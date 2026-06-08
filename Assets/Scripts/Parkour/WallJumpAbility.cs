@@ -11,6 +11,9 @@ public class WallJumpAbility : MonoBehaviour, IMovementAbility
     [SerializeField] private CharacterMotor motor;
     [SerializeField] private InputHandler input;
 
+    [Header("Efectos visuales")]
+    [SerializeField] private NeonFlasher neonFlasher;
+
     // Es una habilidad instantánea — nunca tiene estado activo persistente
     public bool IsActive => false;
 
@@ -53,6 +56,9 @@ public class WallJumpAbility : MonoBehaviour, IMovementAbility
         motor.SetVerticalVelocity(Mathf.Sqrt(jumpVelocity));
 
         JumpedFromWall = true;
+
+        if (Physics.Raycast(transform.position, -wallNormal, out RaycastHit hit, 1.2f))
+            neonFlasher?.Flash(hit);
     }
 
     // Habilidad instantánea — estos métodos no tienen lógica

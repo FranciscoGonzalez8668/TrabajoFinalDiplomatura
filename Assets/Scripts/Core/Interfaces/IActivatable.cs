@@ -11,5 +11,5 @@ public interface IActivatable
 {
     void Play();
     void Stop();
-    void Reset();
+    void ResetToStart();
 }

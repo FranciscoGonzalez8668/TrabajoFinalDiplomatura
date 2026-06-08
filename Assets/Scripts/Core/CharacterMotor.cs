@@ -5,6 +5,7 @@ public class CharacterMotor : MonoBehaviour
 {
     [SerializeField] private PlayerData data;
     [SerializeField] private InputHandler input;
+    [SerializeField] private LayerMask wallDetectionMask = Physics.DefaultRaycastLayers;
 
 
     //Public State (Read Only)
@@ -20,7 +21,9 @@ public class CharacterMotor : MonoBehaviour
     public bool OverrideGravity { get; set; }
     public bool HitCeiling { get; private set; }
     public float GravityScale => data.gravityScale;
-    public float HalfHeight => cc.height * 0.5f;
+    public float    HalfHeight    => cc.height * 0.5f;
+    public float    Radius        => cc.radius;
+    public Collider GroundCollider { get; private set; }
     public float FeetY => transform.position.y + cc.center.y - cc.height * 0.5f;
 
 
@@ -29,6 +32,8 @@ public class CharacterMotor : MonoBehaviour
     private CharacterController cc;
     private Vector3 velocity;
     private float verticalVelocity;
+
+    private Vector3 groundNormal = Vector3.up;
 
     // Plataformas móviles — delta tracking sin parenting (evita herencia de escala)
     private Transform currentSurface;
@@ -90,6 +95,9 @@ public class CharacterMotor : MonoBehaviour
             verticalVelocity = -2f; //Small negative to keep grounded
         }
 
+        if (!IsGrounded)
+            groundNormal = Vector3.up;
+
         // Timer de gracia antes de soltarse de la plataforma
         // Evita que un flickering puntual de isGrounded deshaga el parenting
         if (IsGrounded)
@@ -122,14 +130,14 @@ public class CharacterMotor : MonoBehaviour
         // Raycast extra en la dirección de la última normal conocida
         // Evita que una leve rotación del personaje rompa la detección durante el wall run
         bool stickyCheck = WallNormal != Vector3.zero &&
-                           Physics.Raycast(transform.position, -WallNormal, out hit, data.wallDetectionDistance);
+                           Physics.Raycast(transform.position, -WallNormal, out hit, data.wallDetectionDistance, wallDetectionMask);
 
-        if (stickyCheck                                                                                          ||
-            Physics.Raycast(transform.position,  transform.right,   out hit, data.wallDetectionDistance) ||
-            Physics.Raycast(transform.position, -transform.right,   out hit, data.wallDetectionDistance) ||
-            Physics.Raycast(transform.position,  diagRight,         out hit, data.wallDetectionDistance) ||
-            Physics.Raycast(transform.position,  diagLeft,          out hit, data.wallDetectionDistance) ||
-            Physics.Raycast(transform.position,  transform.forward, out hit, data.wallDetectionDistance))
+        if (stickyCheck                                                                                                                        ||
+            Physics.Raycast(transform.position,  transform.right,   out hit, data.wallDetectionDistance, wallDetectionMask) ||
+            Physics.Raycast(transform.position, -transform.right,   out hit, data.wallDetectionDistance, wallDetectionMask) ||
+            Physics.Raycast(transform.position,  diagRight,         out hit, data.wallDetectionDistance, wallDetectionMask) ||
+            Physics.Raycast(transform.position,  diagLeft,          out hit, data.wallDetectionDistance, wallDetectionMask) ||
+            Physics.Raycast(transform.position,  transform.forward, out hit, data.wallDetectionDistance, wallDetectionMask))
         {
             IsTouchingWall = true;
             WallNormal = hit.normal;
@@ -150,9 +158,9 @@ public class CharacterMotor : MonoBehaviour
 
         RaycastHit hit;
         bool detected =
-            Physics.Raycast(transform.position, transform.forward, out hit, data.wallDetectionDistance) ||
-            Physics.Raycast(transform.position, slightLeft,        out hit, data.wallDetectionDistance) ||
-            Physics.Raycast(transform.position, slightRight,       out hit, data.wallDetectionDistance);
+            Physics.Raycast(transform.position, transform.forward, out hit, data.wallDetectionDistance, wallDetectionMask) ||
+            Physics.Raycast(transform.position, slightLeft,        out hit, data.wallDetectionDistance, wallDetectionMask) ||
+            Physics.Raycast(transform.position, slightRight,       out hit, data.wallDetectionDistance, wallDetectionMask);
 
         // Debug: verde = detectó, rojo = no detectó
         Debug.DrawRay(transform.position, transform.forward  * data.wallDetectionDistance, detected ? Color.green : Color.red);
@@ -369,7 +377,12 @@ public class CharacterMotor : MonoBehaviour
         if (!OverrideGravity)
             ApplyGravity();
 
-        Vector3 finalMove = velocity + Vector3.up * verticalVelocity;
+        // Proyectar la velocidad horizontal sobre el plano de la rampa para evitar el movimiento en sierra.
+        // En suelo plano groundNormal = Vector3.up, ProjectOnPlane da el mismo resultado.
+        Vector3 horizontalMove = IsGrounded
+            ? Vector3.ProjectOnPlane(velocity, groundNormal)
+            : velocity;
+        Vector3 finalMove = horizontalMove + Vector3.up * verticalVelocity;
         CollisionFlags collisionFlags = cc.Move(finalMove * Time.deltaTime);
 
         if ((collisionFlags & CollisionFlags.Above) != 0 && verticalVelocity > 0f)
@@ -398,7 +411,14 @@ public class CharacterMotor : MonoBehaviour
 
     private void OnControllerColliderHit(ControllerColliderHit hit)
     {
-        // Solo superficies que miran hacia arriba
+        // Capturar la normal y el collider del suelo
+        if (hit.normal.y > 0.7f)
+        {
+            groundNormal   = hit.normal;
+            GroundCollider = hit.collider;
+        }
+
+        // Solo superficies que miran hacia arriba para la lógica de plataformas
         if (hit.normal.y < 0.7f) return;
 
         ObjectMover mover = hit.gameObject.GetComponent<ObjectMover>();

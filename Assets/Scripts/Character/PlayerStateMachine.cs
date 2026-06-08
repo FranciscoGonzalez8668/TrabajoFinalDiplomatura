@@ -16,8 +16,10 @@ public class PlayerStateMachine : MonoBehaviour
     [SerializeField] private WallRunAbility wallRun;
     [SerializeField] private WallJumpAbility wallJump;
     [SerializeField] private LedgeGrabAbility ledgeGrab;
-
     [SerializeField] private VerticalWallRunAbility verticalWallRun;
+
+    [Header("Efectos visuales")]
+    [SerializeField] private NeonFlasher neonFlasher;
 
     public PlayerState CurrentState { get; private set; }
 
@@ -160,6 +162,7 @@ public class PlayerStateMachine : MonoBehaviour
         if (!input.JumpPressed && !motor.JumpBuffered) return false;
         if (!motor.TryJump()) return false;
 
+        neonFlasher?.Flash(motor.GroundCollider);
         SetState(PlayerState.Jumping);
         return true;
     }

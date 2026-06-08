@@ -15,7 +15,7 @@ public class ActivatorSwitch : MonoBehaviour, IInteractable
         OneShot,
         /// <summary>Alterna entre Play() y Stop() en cada interacción.</summary>
         Toggle,
-        /// <summary>Llama Reset() + Play() en cada interacción. Reinicia el ciclo desde cero.</summary>
+        /// <summary>Llama ResetToStart() + Play() en cada interacción. Reinicia el ciclo desde cero.</summary>
         Restart
     }
 
@@ -95,7 +95,7 @@ public class ActivatorSwitch : MonoBehaviour, IInteractable
                 break;
 
             case SwitchMode.Restart:
-                ForEachTarget(t => t.Reset());
+                ForEachTarget(t => t.ResetToStart());
                 Activate();
                 break;
         }

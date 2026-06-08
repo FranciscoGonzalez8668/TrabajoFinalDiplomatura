@@ -22,9 +22,9 @@ public class ToggleObject : MonoBehaviour, IActivatable
         SetVisible(startVisible);
     }
 
-    public void Play()  => SetVisible(true);
-    public void Stop()  => SetVisible(false);
-    public void Reset() => SetVisible(startVisible);
+    public void Play()         => SetVisible(true);
+    public void Stop()         => SetVisible(false);
+    public void ResetToStart() => SetVisible(startVisible);
 
     private void SetVisible(bool visible)
     {

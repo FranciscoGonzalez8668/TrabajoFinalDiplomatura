@@ -20,7 +20,7 @@ public class ObjectMover : MonoBehaviour, IActivatable
     [SerializeField] private AnimationCurve movementCurve = AnimationCurve.EaseInOut(0f,0f,1f,1f);
     
 
-    [Header("Pendulum (rotación sobre eje propio)")]
+    [Header("Pendulum (rotación sobre eje propio)")] 
     [SerializeField] private Vector3 pivotAxis = Vector3.right * 2f;
     [SerializeField] private float maxAngle = 45f;
 
@@ -40,10 +40,11 @@ public class ObjectMover : MonoBehaviour, IActivatable
     );
 
     [Header("Vanishing")]
-    [SerializeField] private float    vanishDelay      = 0.5f;
-    [SerializeField] private float    respawnTime      = 3f;
+    [SerializeField] private float    vanishDelay        = 1.5f;
+    [SerializeField] private float    respawnTime        = 3f;
     [SerializeField] private Material vanishingMaterial;
-    [SerializeField] private float    flickerSpeed     = 12f;
+    [SerializeField] private float    flickerSpeedStart  = 3f;
+    [SerializeField] private float    flickerSpeedEnd    = 20f;
 
     private Vector3    startPosition;
     private Quaternion startRotation;
@@ -52,6 +53,7 @@ public class ObjectMover : MonoBehaviour, IActivatable
     private bool      isVanished;
     private bool      isFlickering;
     private float     flickerTimer;
+    private float     flickerProgress; // 0→1 durante vanishDelay, usado para acelerar
     private Renderer  cachedRenderer;
     private Collider  cachedCollider;
     private NeonEdges cachedNeonEdges;
@@ -94,7 +96,8 @@ public class ObjectMover : MonoBehaviour, IActivatable
     private void UpdateFlicker()
     {
         if (cachedNeonEdges == null) return;
-        flickerTimer += Time.deltaTime * flickerSpeed;
+        float speed = Mathf.Lerp(flickerSpeedStart, flickerSpeedEnd, flickerProgress);
+        flickerTimer += Time.deltaTime * speed;
         cachedNeonEdges.enabled = Mathf.Sin(flickerTimer * Mathf.PI) > 0f;
     }
 
@@ -179,13 +182,20 @@ public class ObjectMover : MonoBehaviour, IActivatable
     {
         isVanished = true;
 
-        // Titilado antes de desaparecer
-        isFlickering  = true;
-        flickerTimer  = 0f;
+        // Titilado acelerado antes de desaparecer
+        isFlickering    = true;
+        flickerTimer    = 0f;
+        flickerProgress = 0f;
         if (cachedNeonEdges != null && vanishingMaterial != null)
             cachedNeonEdges.SetRuntimeMaterial(vanishingMaterial);
 
-        yield return new WaitForSeconds(vanishDelay);
+        float elapsed = 0f;
+        while (elapsed < vanishDelay)
+        {
+            elapsed        += Time.deltaTime;
+            flickerProgress = Mathf.Clamp01(elapsed / vanishDelay);
+            yield return null;
+        }
 
         // Dejar de titilar y desaparecer
         isFlickering = false;
@@ -215,12 +225,64 @@ public class ObjectMover : MonoBehaviour, IActivatable
     public void Stop() => IsActive = false;
 
     /// <summary>Vuelve a la posición y rotación iniciales. No inicia el movimiento — llamar Play() después si hace falta.</summary>
-    public void Reset()
+    public void ResetToStart()
     {
         IsActive = false;
         timer    = 0f;
         transform.position = startPosition;
         transform.rotation = startRotation;
         Physics.SyncTransforms();
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        // En edit mode startPosition no está seteado (Awake no corrió), usar transform.position
+        Vector3    origin   = Application.isPlaying ? startPosition : transform.position;
+        Quaternion rotation = Application.isPlaying ? startRotation : transform.rotation;
+
+        switch (type)
+        {
+            case MoverType.Linear:
+                Vector3 destination = origin + offset;
+                Gizmos.color = new Color(0.2f, 0.8f, 1f);
+                Gizmos.DrawLine(origin, destination);
+                Gizmos.DrawSphere(origin,      0.07f);
+                Gizmos.DrawSphere(destination, 0.07f);
+                // Línea de retorno punteada (semitransparente)
+                Gizmos.color = new Color(0.2f, 0.8f, 1f, 0.3f);
+                Gizmos.DrawLine(destination, origin);
+                break;
+
+            case MoverType.Pendulum:
+                // Muestra las dos posiciones extremas del balanceo
+                Quaternion anglePos = rotation * Quaternion.AngleAxis( maxAngle, pivotAxis.normalized);
+                Quaternion angleNeg = rotation * Quaternion.AngleAxis(-maxAngle, pivotAxis.normalized);
+                Vector3 fwdPos = anglePos * Vector3.forward * 0.6f;
+                Vector3 fwdNeg = angleNeg * Vector3.forward * 0.6f;
+                Gizmos.color = new Color(1f, 0.8f, 0.2f);
+                Gizmos.DrawLine(origin, origin + fwdPos);
+                Gizmos.DrawLine(origin, origin + fwdNeg);
+                Gizmos.DrawSphere(origin + fwdPos, 0.07f);
+                Gizmos.DrawSphere(origin + fwdNeg, 0.07f);
+                break;
+
+            case MoverType.PendulumBob:
+                // Muestra el pivote y las dos posiciones extremas del arco
+                Vector3 pivot   = origin + pivotOffset;
+                Vector3 restDir = -pivotOffset.normalized;
+                float   arm     = pivotOffset.magnitude;
+                Quaternion swingPos = Quaternion.AngleAxis( maxAngle, bobSwingAxis.normalized);
+                Quaternion swingNeg = Quaternion.AngleAxis(-maxAngle, bobSwingAxis.normalized);
+                Vector3 posA = pivot + swingPos * restDir * arm;
+                Vector3 posB = pivot + swingNeg * restDir * arm;
+                Gizmos.color = new Color(1f, 0.8f, 0.2f);
+                Gizmos.DrawSphere(pivot,  0.07f);
+                Gizmos.DrawLine(pivot, posA);
+                Gizmos.DrawLine(pivot, posB);
+                Gizmos.DrawLine(pivot, origin);
+                Gizmos.DrawSphere(posA, 0.07f);
+                Gizmos.DrawSphere(posB, 0.07f);
+                break;
+        }
     }
 }

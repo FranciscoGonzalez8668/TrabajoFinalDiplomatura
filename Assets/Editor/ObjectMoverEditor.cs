@@ -45,8 +45,11 @@ public class ObjectMoverEditor : Editor
 
             case ObjectMover.MoverType.Vanishing:
                 EditorGUILayout.LabelField("Vanishing", EditorStyles.boldLabel);
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("vanishingMaterial"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("vanishDelay"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("respawnTime"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("flickerSpeedStart"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("flickerSpeedEnd"));
                 break;
         }
 

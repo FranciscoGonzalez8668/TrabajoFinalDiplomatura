@@ -30,7 +30,15 @@ public class PlayerInteractor : MonoBehaviour
 
     private void UpdateHint(IInteractable nearest)
     {
-        if (nearest != null && nearest.CanInteract && !string.IsNullOrEmpty(nearest.HintText))
+        if (nearest == null)
+        {
+            UIManager.Instance?.ClearInteractionHint();
+            return;
+        }
+
+        // Siempre mostrar el hint si hay un interactuable cerca,
+        // aunque esté bloqueado — el jugador necesita saber que puede interactuar
+        if (!string.IsNullOrEmpty(nearest.HintText))
             UIManager.Instance?.SetInteractionHint(nearest.HintText);
         else
             UIManager.Instance?.ClearInteractionHint();

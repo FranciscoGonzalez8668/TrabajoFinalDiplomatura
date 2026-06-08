@@ -13,6 +13,15 @@ public class LedgeGrabAbility : MonoBehaviour, IMovementAbility
     [SerializeField] private PlayerStateMachine stateMachine;
     [SerializeField] private CameraController cameraController;
 
+    [Header("Climb check")]
+    [Tooltip("Cuánto se meten los puntos de validación dentro de la plataforma (alejándose de la pared). Aumentar si plataformas válidas no dejan subir.")]
+    [SerializeField] private float climbCheckInset  = 0.85f;
+    [Tooltip("Radio del círculo de validación al trepar.")]
+    [SerializeField] private float climbCheckRadius = 0.2f;
+
+    [Header("Efectos visuales")]
+    [SerializeField] private NeonFlasher neonFlasher;
+
     public bool IsActive => IsLedgeGrabbing;
     public bool IsLedgeGrabbing { get; private set; }
 
@@ -23,11 +32,17 @@ public class LedgeGrabAbility : MonoBehaviour, IMovementAbility
     private float grabHeightOffset;
     private Vector3 wallNormal;
 
+    // Debug gizmos del climb check
+    private Vector3[] debugClimbOrigins;
+    private bool[]    debugClimbHits;
+
     private bool isClimbing;
     private bool climbVerticalDone;
     private Vector3 climbTargetPosition;
     private Vector3 localClimbTargetPosition;
     private float climbTimer;
+
+    private Collider grabbedWallCollider;
 
     // Moving platform support
     private Transform attachedPlatform;
@@ -51,6 +66,8 @@ public class LedgeGrabAbility : MonoBehaviour, IMovementAbility
             return;
 
         StartLedgeGrab(ledgeHit.point, wallHit.normal);
+
+        grabbedWallCollider = wallHit.collider;
 
         // Si el borde pertenece a un ObjectMover, adjuntarse para moverse con él
         ObjectMover mover = wallHit.collider != null
@@ -116,19 +133,40 @@ public class LedgeGrabAbility : MonoBehaviour, IMovementAbility
             wallNormal    = attachedPlatform.TransformDirection(localWallNormal);
         }
 
+        // Actualizar debug del climb check cada frame para que los gizmos reflejen
+        // la posición actual y el estado real de la superficie sobre el borde.
+        RefreshClimbCheck();
+
         motor.MoveVerticalTo(hangPosition.y);
         motor.SetVerticalVelocity(0f);
 
-        // Shimmy: W mueve en la dirección de la cámara proyectada sobre la pared
-        // A/D mueven lateralmente respecto a la cámara proyectada sobre la pared
+        // El salto tiene prioridad máxima: chequearlo ANTES del shimmy para evitar que
+        // la sonda de shimmy llame StopLedgeGrab+return antes de procesar el jump.
+        if (input.JumpPressed)
+        {
+            LedgeJump();
+            return;
+        }
+
+        if (input.ClimbPressed && HasSpaceToClimb())
+        {
+            StartClimb();
+            return;
+        }
+
+        // Shimmy: igual que correr pero el resultado se proyecta al eje del borde.
+        // inputWorld = dirección camera-relative (mismo cálculo que el movimiento en suelo).
+        // Dot contra ledgeDirection da cuánto de ese input va a lo largo del borde.
+        // Si W apunta hacia la pared: dot ≈ 0, igual que correr contra una pared.
         Vector3 ledgeDirection = Vector3.Cross(wallNormal, Vector3.up).normalized;
         Vector3 moveAlongLedge;
 
         if (cameraController != null)
         {
-            Vector3 camFwdOnWall    = Vector3.ProjectOnPlane(cameraController.CameraForward, wallNormal).normalized;
-            Vector3 camRightOnWall  = Vector3.ProjectOnPlane(cameraController.CameraRight,   wallNormal).normalized;
-            moveAlongLedge = (camFwdOnWall * input.MoveInput.y + camRightOnWall * input.MoveInput.x);
+            Vector3 inputWorld = cameraController.CameraForward * input.MoveInput.y
+                               + cameraController.CameraRight   * input.MoveInput.x;
+            float shimmyAmount = Vector3.Dot(inputWorld, ledgeDirection);
+            moveAlongLedge = ledgeDirection * shimmyAmount;
         }
         else
         {
@@ -137,9 +175,9 @@ public class LedgeGrabAbility : MonoBehaviour, IMovementAbility
 
         if (moveAlongLedge.magnitude > 0.1f)
         {
-            float probeStep         = Mathf.Max(0.05f, data.moveSpeed * Time.deltaTime);
-            Vector3 lateralProbe    = ledgeDirection * Mathf.Sign(input.MoveInput.x) * probeStep;
-            Vector3 candidatePos    = new Vector3(
+            float probeStep      = Mathf.Max(0.05f, data.moveSpeed * Time.deltaTime);
+            Vector3 lateralProbe = moveAlongLedge.normalized * probeStep;
+            Vector3 candidatePos = new Vector3(
                 transform.position.x + lateralProbe.x,
                 ledgeTopPoint.y - grabHeightOffset,
                 transform.position.z + lateralProbe.z);
@@ -155,23 +193,11 @@ public class LedgeGrabAbility : MonoBehaviour, IMovementAbility
             wallNormal    = wallHit.normal;
             ledgeTopPoint = ledgeHit.point;
             hangPosition  = new Vector3(hangPosition.x, ledgeHit.point.y - 0.1f, hangPosition.z);
-            motor.Move(moveAlongLedge, data.moveSpeed);
+            motor.Move(moveAlongLedge.normalized, data.moveSpeed);
         }
         else
         {
             motor.Stop();
-        }
-
-        if (input.ClimbPressed && HasSpaceToClimb())
-        {
-            StartClimb();
-            return;
-        }
-
-        if (input.JumpPressed)
-        {
-            LedgeJump();
-            return;
         }
 
         // Timeout: soltar automáticamente si se cuelga demasiado tiempo
@@ -191,8 +217,13 @@ public class LedgeGrabAbility : MonoBehaviour, IMovementAbility
 
         // Liberar el lock — si el jugador subió, el sistema de plataformas toma el control normalmente.
         // Si saltó o cayó, DetachFromSurface se llama desde LedgeJump/ForceStop.
-        motor.SurfaceLocked = false;
-        attachedPlatform = null;
+        motor.SurfaceLocked  = false;
+        attachedPlatform     = null;
+        grabbedWallCollider  = null;
+
+        // Limpiar debug para que los gizmos no muestren datos viejos de un grab anterior
+        debugClimbOrigins = null;
+        debugClimbHits    = null;
     }
 
     // -------------------------------------------------------
@@ -263,6 +294,8 @@ public class LedgeGrabAbility : MonoBehaviour, IMovementAbility
 
     private void LedgeJump()
     {
+        neonFlasher?.Flash(grabbedWallCollider);
+
         motor.DetachFromSurface();
         StopLedgeGrab();
 
@@ -270,16 +303,28 @@ public class LedgeGrabAbility : MonoBehaviour, IMovementAbility
         float jumpVelocity = 2f * Mathf.Abs(gravity) * motor.GravityScale * data.wallJumpHeight;
         motor.SetVerticalVelocity(Mathf.Sqrt(jumpVelocity));
 
-        // Siempre salimos alejados de la pared
-        // El input lateral (A/D relativo a la cámara) agrega dirección diagonal
+        // Dirección base: siempre alejándose de la pared
         Vector3 wallOut = new Vector3(wallNormal.x, 0f, wallNormal.z).normalized;
 
-        Vector3 lateral = Vector3.zero;
-        if (cameraController != null && Mathf.Abs(input.MoveInput.x) > 0.1f)
-            lateral = cameraController.CameraRight * input.MoveInput.x;
+        if (cameraController == null)
+        {
+            motor.SetHorizontalVelocity(wallOut, data.wallJumpSpeed);
+            return;
+        }
 
-        Vector3 finalJumpDir = (wallOut + lateral).normalized;
-        motor.SetHorizontalVelocity(finalJumpDir, data.wallJumpSpeed);
+        // Input camera-relative
+        Vector3 cameraForward = cameraController.CameraForward;
+        Vector3 cameraRight   = cameraController.CameraRight;
+        Vector3 inputDir      = cameraForward * input.MoveInput.y + cameraRight * input.MoveInput.x;
+
+        // Extraer solo el componente LATERAL del input (perpendicular a wallOut).
+        // Esto descarta lo que empuja hacia la pared o la refuerza,
+        // y deja solo la desviación izquierda/derecha que el jugador quiso aplicar.
+        Vector3 lateralInput = Vector3.ProjectOnPlane(inputDir, wallOut);
+
+        // Combinar: siempre sale de la pared + inclinación lateral por input de cámara
+        Vector3 finalDir = (wallOut + lateralInput).normalized;
+        motor.SetHorizontalVelocity(finalDir, data.wallJumpSpeed);
     }
 
     // -------------------------------------------------------
@@ -314,19 +359,83 @@ public class LedgeGrabAbility : MonoBehaviour, IMovementAbility
                            + transform.forward * data.ledgeDetectionDistance
                            + Vector3.up * (data.ledgeGrabReach * 0.5f);
         Gizmos.DrawCube(zoneCenter, new Vector3(0.15f, data.ledgeGrabReach, 0.15f));
+
+        // Rays del climb check — solo visibles mientras el jugador está colgado del borde.
+        // Se actualizan cada frame (RefreshClimbCheck en UpdateLedgeGrab) así que siempre
+        // reflejan la superficie actual. Verde = hit (hay suelo), Rojo = miss.
+        if (!IsLedgeGrabbing || debugClimbOrigins == null) return;
+        for (int i = 0; i < debugClimbOrigins.Length; i++)
+        {
+            bool hit = debugClimbHits != null && i < debugClimbHits.Length && debugClimbHits[i];
+            Gizmos.color = hit ? Color.green : Color.red;
+            Gizmos.DrawLine(debugClimbOrigins[i], debugClimbOrigins[i] + Vector3.down * 0.4f);
+            Gizmos.DrawSphere(debugClimbOrigins[i], 0.03f);
+        }
     }
 
     /// <summary>
-    /// Verifica que haya suficiente espacio vertical sobre el borde para que el jugador pueda subir.
-    /// Evita trepar a superficies muy pequeñas donde el personaje quedaría encajado.
+    /// Verifica dos condiciones antes de permitir trepar:
+    /// 1. Altura: hay espacio vertical sobre el borde para pararse.
+    /// 2. Ancho: la mayoría de los puntos del área de aterrizaje tienen suelo debajo.
     /// </summary>
     private bool HasSpaceToClimb()
     {
+        // Check 1 — altura libre sobre el borde
         float requiredHeight = motor.HalfHeight * 2f;
-        Vector3 checkOrigin  = ledgeTopPoint + Vector3.up * 0.1f;
+        Vector3 heightOrigin = ledgeTopPoint + Vector3.up * 0.1f;
+        if (Physics.SphereCast(heightOrigin, 0.2f, Vector3.up, out _, requiredHeight))
+            return false;
 
-        bool blocked = Physics.SphereCast(checkOrigin, 0.2f, Vector3.up, out _, requiredHeight);
-        return !blocked;
+        // Check 2 — ancho de la superficie: RefreshClimbCheck() ya corrió este frame en
+        // UpdateLedgeGrab() así que debugClimbHits está al día. Solo contamos los hits.
+        if (debugClimbHits == null) return false;
+
+        int hitCount = 0;
+        foreach (bool h in debugClimbHits)
+            if (h) hitCount++;
+
+        // Todos los puntos deben tener suelo debajo.
+        return hitCount == debugClimbHits.Length;
+    }
+
+    /// <summary>
+    /// Recalcula cada frame los orígenes y resultados del climb check.
+    /// Se llama desde UpdateLedgeGrab() para que los gizmos siempre reflejen
+    /// la posición y la superficie actual, sin necesidad de apretar Shift.
+    ///
+    /// 4 puntos de verificación alineados con el punto de aterrizaje:
+    ///   - Centro
+    ///   - Alejado de la pared  (wallOut)
+    ///   - Derecha a lo largo del borde (+ledgeDir)
+    ///   - Izquierda a lo largo del borde (-ledgeDir)
+    /// El punto hacia la pared se omite: sabemos que hay pared ahí, siempre fallaría.
+    /// Todos se castean hacia abajo 0.4f. Verde = hit, Rojo = miss.
+    /// </summary>
+    private void RefreshClimbCheck()
+    {
+        // Punto de aterrizaje: posición horizontal final del jugador después de trepar,
+        // a la altura del borde (levemente por encima para no empezar dentro del collider).
+        Vector3 landingXZ   = transform.position - wallNormal * climbCheckInset;
+        Vector3 landingBase = new Vector3(landingXZ.x, ledgeTopPoint.y + 0.15f, landingXZ.z);
+        float   r           = climbCheckRadius;
+
+        // Ejes relativos al borde (plano horizontal)
+        Vector3 wallOut  = -new Vector3(wallNormal.x, 0f, wallNormal.z).normalized;
+        Vector3 ledgeDir =  Vector3.Cross(wallNormal, Vector3.up).normalized;
+
+        debugClimbOrigins = new Vector3[]
+        {
+            landingBase,                      // centro
+            landingBase + wallOut  * r,       // alejado de pared
+            landingBase + ledgeDir * r,       // derecha del borde
+            landingBase - ledgeDir * r,       // izquierda del borde
+        };
+
+        if (debugClimbHits == null || debugClimbHits.Length != debugClimbOrigins.Length)
+            debugClimbHits = new bool[debugClimbOrigins.Length];
+
+        for (int i = 0; i < debugClimbOrigins.Length; i++)
+            debugClimbHits[i] = Physics.Raycast(debugClimbOrigins[i], Vector3.down, 0.4f);
     }
 
     private bool TryFindLedgeAtPosition(Vector3 characterPosition, Vector3 wallCheckDirection,

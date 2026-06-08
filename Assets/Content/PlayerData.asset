@@ -18,29 +18,32 @@ MonoBehaviour:
   rotationSpeed: 12
   sprintSpeed: 15
   sprintAcceleration: 24
-  jumpHeight: 10
+  jumpHeight: 5
   coyoteTime: 0.15
   jumpBufferTime: 0.12
+  airControlSpeed: 13
+  airControlAcceleration: 20
+  airDeceleration: 3
   wallJumpSpeed: 15
   wallJumpForce: 20
-  wallJumpHeight: 2
+  wallJumpHeight: 4
   gravityScale: 2.5
   fallMultiplier: 2
   maxFallSpeed: 20
-  wallRunSpeed: 13
-  verticalWallRunSpeed: 10
-  horizontalWallRunDuration: 1
+  wallRunSpeed: 15
+  verticalWallRunSpeed: 12
+  horizontalWallRunDuration: 1.3
   wallDetectionDistance: 0.6
   wallRunGravity: 0.1
   minWallRunHeight: 1
-  wallRunUpBoost: 3
+  wallRunUpBoost: 4
   verticalWallRunDuration: 1
   verticalWallRunCooldown: 1
   frontWallThreshold: 0.7
   ledgeDetectionDistance: 0.8
-  ledgeGrabReach: 1.5
+  ledgeGrabReach: 1.3
   ledgeCheckHeightOffset: 0.5
   ledgeClimbSpeed: 4
-  ledgeHangTimeout: 3
+  ledgeHangTimeout: 100
   ledgeClimbDuration: 0.4
   globalTimerDuration: 120
