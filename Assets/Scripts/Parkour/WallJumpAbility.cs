@@ -14,6 +14,9 @@ public class WallJumpAbility : MonoBehaviour, IMovementAbility
     [Header("Efectos visuales")]
     [SerializeField] private NeonFlasher neonFlasher;
 
+    [Header("Audio")]
+    [SerializeField] private PlayerSFX sfx;
+
     // Es una habilidad instantánea — nunca tiene estado activo persistente
     public bool IsActive => false;
 
@@ -56,6 +59,8 @@ public class WallJumpAbility : MonoBehaviour, IMovementAbility
         motor.SetVerticalVelocity(Mathf.Sqrt(jumpVelocity));
 
         JumpedFromWall = true;
+
+        sfx?.PlayWallJump();
 
         if (Physics.Raycast(transform.position, -wallNormal, out RaycastHit hit, 1.2f))
             neonFlasher?.Flash(hit);

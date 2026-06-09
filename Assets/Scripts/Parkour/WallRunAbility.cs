@@ -11,6 +11,12 @@ public class WallRunAbility : MonoBehaviour, IMovementAbility
     [SerializeField] private CharacterMotor motor;
     [SerializeField] private InputHandler input;
 
+    [Header("Efectos visuales")]
+    [SerializeField] private ParticleSystem wallRunParticles;
+
+    [Header("Audio")]
+    [SerializeField] private PlayerSFX sfx;
+
     public bool IsActive => IsWallRunning;
     public bool IsWallRunning { get; private set; }
 
@@ -48,6 +54,9 @@ public class WallRunAbility : MonoBehaviour, IMovementAbility
             motor.SetVerticalVelocity(data.wallRunUpBoost);
 
         motor.SetHorizontalVelocity(wallRunDirection, motor.Velocity.magnitude);
+
+        sfx?.PlayWallRunStart();
+        wallRunParticles?.Play();
     }
 
     public void UpdateAbility()
@@ -80,6 +89,9 @@ public class WallRunAbility : MonoBehaviour, IMovementAbility
         IsWallRunning = false;
         wallRunTimer  = 0f;
         motor.OverrideGravity = false;
+
+        sfx?.PlayWallRunStop();
+        wallRunParticles?.Stop(true, ParticleSystemStopBehavior.StopEmitting);
     }
 
     public void ForceStop()

@@ -19,6 +19,10 @@ public class PlayerRespawn : MonoBehaviour
     [SerializeField] private CameraController cameraController;
     [SerializeField] private Transform respawnPoint;
 
+    [Header("Muerte")]
+    [SerializeField] private Animator animator;
+    [SerializeField] private PlayerSFX sfx;
+
     [Header("Respawn")]
     [SerializeField] private float respawnDelay = 1f;
 
@@ -92,6 +96,8 @@ public class PlayerRespawn : MonoBehaviour
         if (IsDead) return;
 
         IsDead = true;
+        sfx?.PlayDeath();
+        animator?.SetTrigger("Death");
         ApplyDeathState();
         respawnRoutine = StartCoroutine(RespawnAfterDelay());
     }
@@ -130,6 +136,9 @@ public class PlayerRespawn : MonoBehaviour
 
         if (cameraController != null)
             cameraController.SnapToPlayerForward();
+
+        animator?.ResetTrigger("Death");
+        animator?.Play("Idle", 0, 0f);
 
         IsDead         = false;
         respawnRoutine = null;

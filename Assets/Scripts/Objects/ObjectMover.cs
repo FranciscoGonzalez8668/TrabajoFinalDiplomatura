@@ -39,6 +39,12 @@ public class ObjectMover : MonoBehaviour, IActivatable
         new Keyframe(1f,    0f)
     );
 
+    [Header("Audio")]
+    [Tooltip("Sonido que se reproduce cuando la plataforma empieza a moverse (Play). Dejar vacío para no reproducir nada.")]
+    [SerializeField] private AudioClip moveStartClip;
+    [Range(0f, 1f)]
+    [SerializeField] private float audioVolume = 1f;
+
     [Header("Vanishing")]
     [SerializeField] private float    vanishDelay        = 1.5f;
     [SerializeField] private float    respawnTime        = 3f;
@@ -219,7 +225,12 @@ public class ObjectMover : MonoBehaviour, IActivatable
     }
 
     /// <summary>Reanuda el movimiento desde donde se pausó.</summary>
-    public void Play() => IsActive = true;
+    public void Play()
+    {
+        IsActive = true;
+        if (moveStartClip != null)
+            AudioSource.PlayClipAtPoint(moveStartClip, transform.position, audioVolume);
+    }
 
     /// <summary>Pausa el movimiento. El timer queda donde está.</summary>
     public void Stop() => IsActive = false;

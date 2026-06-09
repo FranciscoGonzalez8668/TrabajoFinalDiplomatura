@@ -21,6 +21,12 @@ public class PlayerStateMachine : MonoBehaviour
     [Header("Efectos visuales")]
     [SerializeField] private NeonFlasher neonFlasher;
 
+    [Header("Animación")]
+    [SerializeField] private Animator animator;
+
+    [Header("Audio")]
+    [SerializeField] private PlayerSFX sfx;
+
     public PlayerState CurrentState { get; private set; }
 
     public enum PlayerState
@@ -106,7 +112,10 @@ public class PlayerStateMachine : MonoBehaviour
 
             case PlayerState.Falling:
                 if (motor.IsGrounded)
+                {
+                    sfx?.PlayLand();
                     UpdateGroundedState();
+                }
                 else if (ledgeGrab.IsActive)
                     SetState(PlayerState.LedgeGrabbing);
                 break;
@@ -163,6 +172,7 @@ public class PlayerStateMachine : MonoBehaviour
         if (!motor.TryJump()) return false;
 
         neonFlasher?.Flash(motor.GroundCollider);
+        sfx?.PlayJump();
         SetState(PlayerState.Jumping);
         return true;
     }
@@ -273,10 +283,22 @@ public class PlayerStateMachine : MonoBehaviour
     {
         if (CurrentState == newState) return;
         CurrentState = newState;
+        UpdateAnimator();
+    }
+
+    private void UpdateAnimator()
+    {
+        if (animator == null) return;
+        bool isJumping  = CurrentState == PlayerState.Jumping || CurrentState == PlayerState.Falling;
+        bool isGrounded = CurrentState == PlayerState.Idle    || CurrentState == PlayerState.Running
+                       || CurrentState == PlayerState.Sprinting;
+        animator.SetBool("IsJumping",  isJumping);
+        animator.SetBool("IsGrounded", isGrounded);
     }
 
     public void ForceSetState(PlayerState newState)
     {
         CurrentState = newState;
+        UpdateAnimator();
     }
 }

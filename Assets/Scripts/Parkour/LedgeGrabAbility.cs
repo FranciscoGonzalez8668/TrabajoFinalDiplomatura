@@ -22,6 +22,9 @@ public class LedgeGrabAbility : MonoBehaviour, IMovementAbility
     [Header("Efectos visuales")]
     [SerializeField] private NeonFlasher neonFlasher;
 
+    [Header("Audio")]
+    [SerializeField] private PlayerSFX sfx;
+
     public bool IsActive => IsLedgeGrabbing;
     public bool IsLedgeGrabbing { get; private set; }
 
@@ -121,6 +124,8 @@ public class LedgeGrabAbility : MonoBehaviour, IMovementAbility
         motor.OverrideGravity = true;
         motor.Stop();
         motor.SetVerticalVelocity(0f);
+
+        sfx?.PlayLedgeGrab();
     }
 
     private void UpdateLedgeGrab()
@@ -237,6 +242,8 @@ public class LedgeGrabAbility : MonoBehaviour, IMovementAbility
         climbTimer          = 0f;
         climbTargetPosition = transform.position - wallNormal * 0.6f;
 
+        sfx?.PlayLedgeClimb();
+
         // Si está en plataforma móvil, guardar el target en local space para actualizarlo cada frame
         if (attachedPlatform != null)
             localClimbTargetPosition = attachedPlatform.InverseTransformPoint(climbTargetPosition);
@@ -295,6 +302,7 @@ public class LedgeGrabAbility : MonoBehaviour, IMovementAbility
     private void LedgeJump()
     {
         neonFlasher?.Flash(grabbedWallCollider);
+        sfx?.PlayLedgeJump();
 
         motor.DetachFromSurface();
         StopLedgeGrab();

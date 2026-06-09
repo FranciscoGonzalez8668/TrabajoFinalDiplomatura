@@ -15,6 +15,9 @@ public class VerticalWallRunAbility : MonoBehaviour, IMovementAbility
     [Tooltip("Velocidad vertical a lo largo del tiempo. Eje x = tiempo normalizado a 1. Eje y = velocidad vertical")]
     public AnimationCurve speedCurve = AnimationCurve.EaseInOut(0f, 1f, 1f, 0f);
 
+    [Header("Audio")]
+    [SerializeField] private PlayerSFX sfx;
+
     public bool IsActive => IsVerticalWallRunning;
     public bool IsVerticalWallRunning { get; private set; }
 
@@ -50,6 +53,8 @@ public class VerticalWallRunAbility : MonoBehaviour, IMovementAbility
         hasLeftGround = false;
         motor.OverrideGravity = true;
         motor.Stop();
+
+        sfx?.PlayVerticalWallRun();
     }
 
     public void UpdateAbility()

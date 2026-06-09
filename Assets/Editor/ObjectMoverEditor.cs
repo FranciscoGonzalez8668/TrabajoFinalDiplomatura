@@ -53,6 +53,15 @@ public class ObjectMoverEditor : Editor
                 break;
         }
 
+        // Audio — visible en todos los modos excepto Vanishing
+        if (type != ObjectMover.MoverType.Vanishing)
+        {
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Audio", EditorStyles.boldLabel);
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("moveStartClip"));
+            EditorGUILayout.PropertyField(serializedObject.FindProperty("audioVolume"));
+        }
+
         serializedObject.ApplyModifiedProperties();
     }
 }
