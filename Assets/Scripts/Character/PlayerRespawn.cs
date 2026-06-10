@@ -86,7 +86,7 @@ public class PlayerRespawn : MonoBehaviour
             StopCoroutine(respawnRoutine);
             respawnRoutine = null;
         }
-
+ 
         IsDead = false;
         Respawn();
     }
