@@ -14,9 +14,9 @@ public class GameProgress : ScriptableObject
     [Tooltip("Nombres exactos de las escenas tal como aparecen en Build Settings.")]
     public string[] levelSceneNames;
 
-    [Header("Victoria")]
-    [Tooltip("Nombre de la escena a cargar al completar el último piso.")]
-    public string victorySceneName = "Victory";
+    [Header("Menú principal")]
+    [Tooltip("Nombre de la escena del menú. Se carga al completar el último nivel de la lista.")]
+    public string menuSceneName = "MainMenu";
 
     // --- Estado de sesión (no serializado — se recalcula cada vez que se entra en Play) ---
 

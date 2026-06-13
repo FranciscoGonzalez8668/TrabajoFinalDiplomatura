@@ -36,6 +36,8 @@ public class EndingCinematic : MonoBehaviour
     [Header("Texto final")]
     [SerializeField] private float textFadeInDuration = 1.5f;
     [SerializeField] private float delayBeforeText    = 1f;
+    [SerializeField] private float delayBeforeMenu    = 4f;
+    [SerializeField] private string menuSceneName     = "MainMenu";
 
     private Vector3 sphereBaseScale;
     private bool    isPulsing;
@@ -44,6 +46,8 @@ public class EndingCinematic : MonoBehaviour
     {
         sphereBaseScale       = sphere.localScale;
         endTextGroup.alpha    = 0f;
+        isPulsing             = true;
+        StartCoroutine(PulseSphere());
         StartCoroutine(PlayCinematic());
     }
 
@@ -52,9 +56,7 @@ public class EndingCinematic : MonoBehaviour
         // Fase 1 — cámara se aleja a la posición cinematográfica
         yield return StartCoroutine(PullBackCamera());
 
-        // Fase 2 — jugador camina y esfera pulsa al mismo tiempo
-        isPulsing = true;
-        StartCoroutine(PulseSphere());
+        // Fase 2 — jugador camina hacia la esfera (ya está pulsando desde el Start)
         yield return StartCoroutine(WalkPlayerToSphere());
 
         // Fase 3 — absorción: jugador desaparece
@@ -67,6 +69,13 @@ public class EndingCinematic : MonoBehaviour
         // Fase 5 — texto final
         yield return new WaitForSeconds(delayBeforeText);
         yield return StartCoroutine(FadeInText());
+
+        // Esperar un momento y volver al menú
+        yield return new WaitForSeconds(delayBeforeMenu);
+        if (SceneFader.Instance != null)
+            SceneFader.Instance.LoadScene(menuSceneName);
+        else
+            UnityEngine.SceneManagement.SceneManager.LoadScene(menuSceneName);
     }
 
     // -------------------------------------------------------
@@ -124,8 +133,28 @@ public class EndingCinematic : MonoBehaviour
         while (isPulsing)
         {
             t += Time.deltaTime * spherePulseSpeed;
-            float pulse = 1f + Mathf.Sin(t) * spherePulseAmount;
-            sphere.localScale = sphereBaseScale * pulse;
+
+            // Cada eje escala con su propia frecuencia de Perlin — forma irregular y viva
+            float x = sphereBaseScale.x * (1f + (Mathf.PerlinNoise(t * 1.3f, 0.0f) - 0.5f) * spherePulseAmount * 2f);
+            float y = sphereBaseScale.y * (1f + (Mathf.PerlinNoise(0.0f, t * 1.7f) - 0.5f) * spherePulseAmount * 2f);
+            float z = sphereBaseScale.z * (1f + (Mathf.PerlinNoise(t * 0.9f, t * 0.6f) - 0.5f) * spherePulseAmount * 2f);
+
+            // Spike aleatorio ocasional — expansión brusca en un solo eje
+            if (Random.value < 0.05f)
+            {
+                float spike = 1f + spherePulseAmount * Random.Range(0.3f, 0.8f);
+                if (Random.value < 0.5f) x *= spike; else y *= spike;
+            }
+
+            sphere.localScale = new Vector3(x, y, z);
+
+            // Rotación glitch leve — la esfera no está quieta
+            sphere.Rotate(
+                Random.Range(-1f, 1f) * 20f * Time.deltaTime,
+                Random.Range(-1f, 1f) * 20f * Time.deltaTime,
+                Random.Range(-1f, 1f) * 20f * Time.deltaTime
+            );
+
             yield return null;
         }
     }

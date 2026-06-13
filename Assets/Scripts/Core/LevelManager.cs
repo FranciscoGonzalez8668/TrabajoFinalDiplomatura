@@ -66,7 +66,28 @@ public class LevelManager : MonoBehaviour
     // Al cargar cualquier escena: ubica al player en el SpawnPoint de esa escena
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
+        // En la EndScene deshabilitamos al jugador — la cinemática lo controla
+        if (scene.name == progress.levelSceneNames[progress.levelSceneNames.Length - 1])
+        {
+            DisablePlayer();
+            return;
+        }
+
         PlacePlayerAtSpawn();
+    }
+
+    /// <summary>Deshabilita el GameObject del jugador. Usado en la cinemática final.</summary>
+    public void DisablePlayer()
+    {
+        if (playerRespawn != null)
+            playerRespawn.gameObject.SetActive(false);
+    }
+
+    /// <summary>Vuelve a habilitar el jugador.</summary>
+    public void EnablePlayer()
+    {
+        if (playerRespawn != null)
+            playerRespawn.gameObject.SetActive(true);
     }
 
     // --- API pública ---
@@ -100,7 +121,7 @@ public class LevelManager : MonoBehaviour
 
         if (!progress.HasNextLevel)
         {
-            SceneManager.LoadScene(progress.victorySceneName);
+            SceneFader.Instance.LoadScene(progress.menuSceneName);
             return;
         }
 
