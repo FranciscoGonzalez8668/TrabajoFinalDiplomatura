@@ -50,6 +50,10 @@ public class ObjectMoverEditor : Editor
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("respawnTime"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("flickerSpeedStart"));
                 EditorGUILayout.PropertyField(serializedObject.FindProperty("flickerSpeedEnd"));
+                EditorGUILayout.Space();
+                EditorGUILayout.LabelField("Audio", EditorStyles.boldLabel);
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("vanishWarningClip"));
+                EditorGUILayout.PropertyField(serializedObject.FindProperty("vanishClip"));
                 break;
         }
 

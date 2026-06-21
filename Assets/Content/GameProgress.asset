@@ -13,7 +13,9 @@ MonoBehaviour:
   m_Name: GameProgress
   m_EditorClassIdentifier: 
   levelSceneNames:
-  - Menu
+  - MainMenu
+  - Level_1
+  - Level_2
   - Level_0
   - Victory
   menuSceneName: MainMenu

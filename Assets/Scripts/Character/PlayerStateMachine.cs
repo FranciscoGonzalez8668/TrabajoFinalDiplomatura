@@ -49,6 +49,11 @@ public class PlayerStateMachine : MonoBehaviour
         abilities = new IMovementAbility[] { wallRun, wallJump, ledgeGrab, verticalWallRun };
     }
 
+    private void OnEnable()
+    {
+        cameraController = CameraController.Instance;
+    }
+
     private void Update()
     {
         UpdateMoveDirection();

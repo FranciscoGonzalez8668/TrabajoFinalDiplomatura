@@ -53,6 +53,11 @@ public class LedgeGrabAbility : MonoBehaviour, IMovementAbility
     private Vector3 localLedgeTopPoint;
     private Vector3 localWallNormal;
 
+    private void OnEnable()
+    {
+        cameraController = CameraController.Instance;
+    }
+
     public bool CanStart()
     {
         if (Time.time < grabCooldownEndTime) return false;

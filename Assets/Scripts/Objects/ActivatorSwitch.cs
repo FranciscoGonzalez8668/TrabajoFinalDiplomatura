@@ -38,6 +38,10 @@ public class ActivatorSwitch : MonoBehaviour, IInteractable
     [Header("Estado inicial")]
     [SerializeField] private bool startActivated = false;
 
+    [Header("Audio")]
+    [SerializeField] private AudioClip interactClip;
+    [SerializeField] private UnityEngine.Audio.AudioMixerGroup mixerGroup;
+
     [Header("UI")]
     [Tooltip("Texto del hint cuando el jugador puede interactuar. Ej: 'Activar Puerta'.")]
     [SerializeField] private string hintText = "Activar";
@@ -100,6 +104,8 @@ public class ActivatorSwitch : MonoBehaviour, IInteractable
                 break;
         }
 
+        PlaySound();
+
         if (!string.IsNullOrEmpty(activateMessage))
             UIManager.Instance?.ShowNotification(activateMessage);
     }
@@ -114,6 +120,19 @@ public class ActivatorSwitch : MonoBehaviour, IInteractable
     {
         isPlaying = false;
         ForEachTarget(t => t.Stop());
+    }
+
+    private void PlaySound()
+    {
+        if (interactClip == null) return;
+        GameObject go  = new GameObject("SwitchSFX");
+        go.transform.position = transform.position;
+        AudioSource src       = go.AddComponent<AudioSource>();
+        src.clip                  = interactClip;
+        src.outputAudioMixerGroup = mixerGroup;
+        src.spatialBlend          = 1f;
+        src.Play();
+        Destroy(go, interactClip.length);
     }
 
     private void ForEachTarget(System.Action<IActivatable> action)

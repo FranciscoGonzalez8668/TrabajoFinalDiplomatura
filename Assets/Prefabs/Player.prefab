@@ -4965,7 +4965,6 @@ GameObject:
   - component: {fileID: 5330014218219022427}
   - component: {fileID: 5330014218219022420}
   - component: {fileID: 195634960}
-  - component: {fileID: 603057308120733754}
   m_Layer: 0
   m_Name: Ring
   m_TagString: Untagged
@@ -5054,27 +5053,9 @@ MonoBehaviour:
   ringRenderer: {fileID: 5330014218219022420}
   groundedMaterial: {fileID: 2100000, guid: d73672c54325b9a48a2eb012d696668d, type: 2}
   wallMaterial: {fileID: 2100000, guid: 0063068c290bdc14ca956eeddbeaac33, type: 2}
---- !u!95 &603057308120733754
-Animator:
-  serializedVersion: 5
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5330014218219022422}
-  m_Enabled: 1
-  m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: d9d9e55b9bba2934991c12d56f3b9c11, type: 2}
-  m_CullingMode: 0
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 0
-  m_LinearVelocityBlending: 0
-  m_StabilizeFeet: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorStateOnDisable: 0
-  m_WriteDefaultValuesOnDisable: 0
+  sprintTintColor: {r: 0.80784315, g: 1, b: 1, a: 1}
+  sprintInSpeed: 2.17
+  sprintOutSpeed: 15
 --- !u!1 &5330014218725259215
 GameObject:
   m_ObjectHideFlags: 0
@@ -5222,6 +5203,7 @@ MonoBehaviour:
   ledgeGrab: {fileID: 1389791778896684040}
   verticalWallRun: {fileID: 1880065547}
   neonFlasher: {fileID: 5330014218627034021}
+  animator: {fileID: 5330014218627034033}
   sfx: {fileID: 5330014218627034031}
 --- !u!114 &5330014219788082590
 MonoBehaviour:
@@ -5526,10 +5508,11 @@ MonoBehaviour:
   wallRunStopClip: {fileID: 0}
   wallJumpClip: {fileID: 0}
   ledgeGrabClip: {fileID: 8300000, guid: cefd2790449e8104891fdd5bd91c47e2, type: 3}
-  ledgeJumpClip: {fileID: 8300000, guid: 41fa45aac100c284495168d9277eb5cb, type: 3}
+  ledgeJumpClip: {fileID: 8300000, guid: 29bde6326b4c34ad8a12da475f79b50a, type: 3}
   ledgeClimbClip: {fileID: 0}
   verticalWallRunClip: {fileID: 0}
   deathClip: {fileID: 8300000, guid: 7e26c9daf4c32483b9c2790e662d3f1b, type: 3}
+  sfxMixerGroup: {fileID: 1206669843235917440, guid: 7ed52be6321487846a63c537dfaf4ff7, type: 2}
   sfxVolume: 1
 --- !u!1 &5497480671790120262
 GameObject:

@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Audio;
 
 /// <summary>
 /// Centraliza todos los efectos de sonido del jugador.
@@ -32,6 +33,9 @@ public class PlayerSFX : MonoBehaviour
     [Header("Muerte")]
     [SerializeField] private AudioClip deathClip;
 
+    [Header("Audio Mixer")]
+    [SerializeField] private AudioMixerGroup sfxMixerGroup;
+
     [Header("Volumen")]
     [Range(0f, 1f)] [SerializeField] private float sfxVolume = 1f;
 
@@ -42,12 +46,14 @@ public class PlayerSFX : MonoBehaviour
     {
         audioSource = GetComponent<AudioSource>();
         audioSource.playOnAwake = false;
+        if (sfxMixerGroup != null) audioSource.outputAudioMixerGroup = sfxMixerGroup;
 
         // Segunda fuente para el sonido en loop (wall run)
         loopSource = gameObject.AddComponent<AudioSource>();
         loopSource.playOnAwake = false;
         loopSource.loop        = true;
         loopSource.volume      = sfxVolume;
+        if (sfxMixerGroup != null) loopSource.outputAudioMixerGroup = sfxMixerGroup;
     }
 
     // -------------------------------------------------------

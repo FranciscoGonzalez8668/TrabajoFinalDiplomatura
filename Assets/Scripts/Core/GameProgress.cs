@@ -41,8 +41,23 @@ public class GameProgress : ScriptableObject
 
     private void OnEnable()
     {
+        completedLevels = new HashSet<int>();
+        SyncIndexToCurrentScene();
+    }
+
+    /// <summary>Detecta la escena activa y sincroniza currentLevelIndex.</summary>
+    public void SyncIndexToCurrentScene()
+    {
+        string currentScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+        for (int i = 0; i < levelSceneNames.Length; i++)
+        {
+            if (levelSceneNames[i] == currentScene)
+            {
+                currentLevelIndex = i;
+                return;
+            }
+        }
         currentLevelIndex = 0;
-        completedLevels   = new HashSet<int>();
     }
 
     // --- API ---

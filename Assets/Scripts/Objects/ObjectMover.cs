@@ -51,6 +51,8 @@ public class ObjectMover : MonoBehaviour, IActivatable
     [SerializeField] private Material vanishingMaterial;
     [SerializeField] private float    flickerSpeedStart  = 3f;
     [SerializeField] private float    flickerSpeedEnd    = 20f;
+    [SerializeField] private AudioClip vanishWarningClip; // suena al empezar a titilar
+    [SerializeField] private AudioClip vanishClip;        // suena al desaparecer
 
     private Vector3    startPosition;
     private Quaternion startRotation;
@@ -195,6 +197,9 @@ public class ObjectMover : MonoBehaviour, IActivatable
         if (cachedNeonEdges != null && vanishingMaterial != null)
             cachedNeonEdges.SetRuntimeMaterial(vanishingMaterial);
 
+        if (vanishWarningClip != null)
+            AudioSource.PlayClipAtPoint(vanishWarningClip, transform.position);
+
         float elapsed = 0f;
         while (elapsed < vanishDelay)
         {
@@ -210,6 +215,8 @@ public class ObjectMover : MonoBehaviour, IActivatable
             cachedNeonEdges.enabled = true;
             cachedNeonEdges.ClearRuntimeMaterial();
         }
+        if (vanishClip != null)
+            AudioSource.PlayClipAtPoint(vanishClip, transform.position);
         SetVisible(false);
 
         yield return new WaitForSeconds(respawnTime);

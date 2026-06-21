@@ -31,6 +31,11 @@ public class VerticalWallRunAbility : MonoBehaviour, IMovementAbility
     private float cooldownTimer;
     private bool hasLeftGround;
 
+    private void OnEnable()
+    {
+        cameraController = CameraController.Instance;
+    }
+
     public bool CanStart()
     {
         if (JumpedFromVerticalWall && !motor.IsFrontWall)

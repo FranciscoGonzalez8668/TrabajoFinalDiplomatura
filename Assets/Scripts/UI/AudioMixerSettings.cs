@@ -31,19 +31,21 @@ public class AudioMixerSettings : MonoBehaviour
         if (Instance != null) { Destroy(gameObject); return; }
         Instance = this;
         DontDestroyOnLoad(gameObject);
-
-        // Aplicar los valores guardados al mixer apenas arranca
-        ApplyVolume(MasterParam, PlayerPrefs.GetFloat(MasterParam, 1f));
-        ApplyVolume(SFXParam,    PlayerPrefs.GetFloat(SFXParam,    1f));
-        ApplyVolume(MusicParam,  PlayerPrefs.GetFloat(MusicParam,  1f));
     }
 
     private void Start()
     {
-        // Sincronizar los sliders con los valores guardados
-        masterSlider?.SetValueWithoutNotify(PlayerPrefs.GetFloat(MasterParam, 1f));
-        sfxSlider?.SetValueWithoutNotify(PlayerPrefs.GetFloat(SFXParam,    1f));
-        musicSlider?.SetValueWithoutNotify(PlayerPrefs.GetFloat(MusicParam,  1f));
+        float master = PlayerPrefs.GetFloat(MasterParam, 0.8f);
+        float sfx    = PlayerPrefs.GetFloat(SFXParam,    0.8f);
+        float music  = PlayerPrefs.GetFloat(MusicParam,  0.8f);
+
+        masterSlider?.SetValueWithoutNotify(master);
+        sfxSlider?.SetValueWithoutNotify(sfx);
+        musicSlider?.SetValueWithoutNotify(music);
+
+        ApplyVolume(MasterParam, master);
+        ApplyVolume(SFXParam,    sfx);
+        ApplyVolume(MusicParam,  music);
     }
 
     // -------------------------------------------------------
@@ -71,6 +73,10 @@ public class AudioMixerSettings : MonoBehaviour
     // -------------------------------------------------------
     // Conversión lineal → decibeles
     // -------------------------------------------------------
+
+    public float GetMasterVolume() => PlayerPrefs.GetFloat(MasterParam, 0.8f);
+    public float GetSFXVolume()    => PlayerPrefs.GetFloat(SFXParam,    0.8f);
+    public float GetMusicVolume()  => PlayerPrefs.GetFloat(MusicParam,  0.8f);
 
     private void ApplyVolume(string parameter, float linearValue)
     {

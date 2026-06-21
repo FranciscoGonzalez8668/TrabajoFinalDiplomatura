@@ -3,121 +3,160 @@ using UnityEngine.SceneManagement;
 
 /// <summary>
 /// Singleton que persiste entre escenas (DontDestroyOnLoad).
-/// Gestiona la transición entre pisos, el respawn del jugador y el reseteo del estado de nivel.
-///
-/// Responsabilidades:
-///   - ReturnToSpawn()        → solo mueve al jugador, no toca el estado del nivel
-///   - RestartCurrentLevel()  → resetea el LevelState del piso actual y recarga la escena
-///   - AdvanceToNextLevel()   → marca piso completo en GameProgress y carga la siguiente escena
-///
-/// Al cargar cualquier escena busca el tag "SpawnPoint" y sitúa al jugador ahí.
+/// Al entrar en una escena de nivel, instancia el Player y la Cámara si no existen,
+/// los conecta y ubica al jugador en el SpawnPoint.
 /// </summary>
 public class LevelManager : MonoBehaviour
 {
-    // --- Singleton ---
-
     public static LevelManager Instance { get; private set; }
-
-    // --- Inspector ---
 
     [Header("Datos de progreso")]
     [SerializeField] private GameProgress progress;
 
     [Header("Estados de nivel (uno por piso, en orden)")]
-    [Tooltip("Cada LevelState corresponde al piso del mismo índice en GameProgress.levelSceneNames.")]
     [SerializeField] private LevelState[] levelStates;
 
-    [Header("Referencias del jugador")]
-    [Tooltip("Raíz del Player GameObject — se marca DontDestroyOnLoad.")]
-    [SerializeField] private PlayerRespawn playerRespawn;
+    [Header("Prefabs de runtime")]
+    [Tooltip("Prefab del Player. Se instancia una vez y persiste entre escenas.")]
+    [SerializeField] private PlayerRespawn playerPrefab;
+    [Tooltip("Prefab de la cámara. Se instancia una vez y persiste entre escenas.")]
+    [SerializeField] private CameraController cameraPrefab;
 
-    [Header("Configuración de escena")]
+    [Header("Configuración")]
     [SerializeField] private string spawnPointTag = "SpawnPoint";
 
-    // --- Ciclo de vida ---
+    // Instancias runtime (no en inspector — se crean en Bootstrap)
+    private PlayerRespawn    playerRespawn;
+    private CameraController cameraController;
+
+    // -------------------------------------------------------
+    // Ciclo de vida
+    // -------------------------------------------------------
 
     private void Awake()
     {
-        // Patrón singleton: si ya existe una instancia, esta sobra
-        if (Instance != null)
-        {
-            Destroy(gameObject);
-            return;
-        }
-
+        if (Instance != null) { Destroy(gameObject); return; }
         Instance = this;
         DontDestroyOnLoad(gameObject);
-
-        // El player también sobrevive entre escenas
-        if (playerRespawn != null)
-            DontDestroyOnLoad(playerRespawn.gameObject);
     }
 
-    private void OnEnable()
-    {
-        SceneManager.sceneLoaded += OnSceneLoaded;
-    }
+    private void OnEnable()  => SceneManager.sceneLoaded += OnSceneLoaded;
+    private void OnDisable() => SceneManager.sceneLoaded -= OnSceneLoaded;
 
-    private void OnDisable()
-    {
-        SceneManager.sceneLoaded -= OnSceneLoaded;
-    }
-
-    // Al cargar cualquier escena: ubica al player en el SpawnPoint de esa escena
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        // En la EndScene deshabilitamos al jugador — la cinemática lo controla
-        if (scene.name == progress.levelSceneNames[progress.levelSceneNames.Length - 1])
+        progress.SyncIndexToCurrentScene();
+
+        // MainMenu: sin jugador
+        if (scene.name == progress.menuSceneName)
         {
             DisablePlayer();
             return;
         }
 
+        // EndScene: la cinemática controla al jugador
+        string lastScene = progress.levelSceneNames != null && progress.levelSceneNames.Length > 0
+            ? progress.levelSceneNames[progress.levelSceneNames.Length - 1]
+            : string.Empty;
+
+        if (!string.IsNullOrEmpty(lastScene) && scene.name == lastScene)
+        {
+            DisablePlayer();
+            return;
+        }
+
+        // Escena de nivel: asegurar que player y cámara existen, luego colocar
+        Bootstrap();
+    }
+
+    // -------------------------------------------------------
+    // Bootstrap — instancia y conecta player + cámara si no existen
+    // -------------------------------------------------------
+
+    private void Bootstrap()
+    {
+        EnsurePlayer();
+        EnsureCamera();
+
+        // Reconectar siempre — garantiza referencias válidas en cada nivel
+        if (cameraController != null && playerRespawn != null)
+            cameraController.InjectPlayerReferences(playerRespawn.transform);
+
+        EnablePlayer();
         PlacePlayerAtSpawn();
     }
 
-    /// <summary>Deshabilita el GameObject del jugador. Usado en la cinemática final.</summary>
+    private bool EnsurePlayer()
+    {
+        if (playerRespawn != null) return false;
+
+        if (playerPrefab == null)
+        {
+            Debug.LogError("[LevelManager] Falta asignar playerPrefab en el inspector.");
+            return false;
+        }
+
+        // Instanciar inactivo para que Start() corra DESPUÉS de que la cámara esté lista
+        playerRespawn = Instantiate(playerPrefab);
+        playerRespawn.gameObject.SetActive(false);
+        DontDestroyOnLoad(playerRespawn.gameObject);
+        return true;
+    }
+
+    private bool EnsureCamera()
+    {
+        if (cameraController != null) return false;
+
+        // Puede que ya exista como singleton (arrancando desde una escena de nivel en el editor)
+        cameraController = CameraController.Instance;
+        if (cameraController != null) return false;
+
+        if (cameraPrefab == null)
+        {
+            Debug.LogError("[LevelManager] Falta asignar cameraPrefab en el inspector.");
+            return false;
+        }
+
+        cameraController = Instantiate(cameraPrefab);
+        DontDestroyOnLoad(cameraController.gameObject);
+        return true;
+    }
+
+    // -------------------------------------------------------
+    // Player enable / disable
+    // -------------------------------------------------------
+
     public void DisablePlayer()
     {
         if (playerRespawn != null)
             playerRespawn.gameObject.SetActive(false);
     }
 
-    /// <summary>Vuelve a habilitar el jugador.</summary>
     public void EnablePlayer()
     {
         if (playerRespawn != null)
             playerRespawn.gameObject.SetActive(true);
     }
 
-    // --- API pública ---
+    // -------------------------------------------------------
+    // API pública
+    // -------------------------------------------------------
 
-    /// <summary>
-    /// Teletransporta al jugador al SpawnPoint de la escena actual.
-    /// No resetea nada del estado del nivel — los items y switches quedan igual.
-    /// </summary>
-    public void ReturnToSpawn()
-    {
-        PlacePlayerAtSpawn();
-    }
+    public void ReturnToSpawn() => PlacePlayerAtSpawn();
 
-    /// <summary>
-    /// Resetea el LevelState del piso actual y recarga la escena desde cero.
-    /// Útil para reiniciar un piso si algo se bloqueó o el jugador quiere empezar de nuevo.
-    /// </summary>
     public void RestartCurrentLevel()
     {
         ResetCurrentLevelState();
         SceneManager.LoadScene(SceneManager.GetActiveScene().name);
     }
 
-    /// <summary>
-    /// Marca el piso actual como completado y carga el siguiente.
-    /// Si no hay siguiente, carga la escena de victoria.
-    /// </summary>
     public void AdvanceToNextLevel()
     {
         progress.MarkCurrentCompleted();
+
+        // Desactivar el player antes de cambiar de escena
+        // así OnEnable corre limpio cuando se reactiva en el nuevo nivel
+        DisablePlayer();
 
         if (!progress.HasNextLevel)
         {
@@ -129,7 +168,9 @@ public class LevelManager : MonoBehaviour
         SceneManager.LoadScene(progress.CurrentSceneName);
     }
 
-    // --- Privados ---
+    // -------------------------------------------------------
+    // Privados
+    // -------------------------------------------------------
 
     private void PlacePlayerAtSpawn()
     {
@@ -138,7 +179,7 @@ public class LevelManager : MonoBehaviour
         GameObject spawnObj = GameObject.FindWithTag(spawnPointTag);
         if (spawnObj == null)
         {
-            Debug.LogWarning($"[LevelManager] No se encontró ningún objeto con tag '{spawnPointTag}' en la escena.");
+            Debug.LogWarning($"[LevelManager] No hay objeto con tag '{spawnPointTag}' en la escena.");
             return;
         }
 
@@ -150,7 +191,6 @@ public class LevelManager : MonoBehaviour
     {
         int index = progress.CurrentLevelIndex;
         if (levelStates == null || index >= levelStates.Length) return;
-
         LevelState state = levelStates[index];
         if (state != null) state.Reset();
     }

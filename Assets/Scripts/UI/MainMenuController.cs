@@ -1,14 +1,5 @@
 using UnityEngine;
 
-/// <summary>
-/// Controla la navegación entre paneles del menú principal.
-/// Cada botón llama al método correspondiente desde el Inspector (OnClick).
-///
-/// Setup en Unity — Canvas con 3 paneles hijos:
-///   MainPanel    → título + botones principales
-///   SettingsPanel → sliders de volumen
-///   HowToPlayPanel → controles del juego
-/// </summary>
 public class MainMenuController : MonoBehaviour
 {
     [Header("Paneles")]
@@ -21,11 +12,13 @@ public class MainMenuController : MonoBehaviour
 
     private void Start()
     {
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible   = true;
         ShowMain();
     }
 
     // -------------------------------------------------------
-    // Botones del panel principal
+    // Botones
     // -------------------------------------------------------
 
     public void OnStartGame()
@@ -33,15 +26,25 @@ public class MainMenuController : MonoBehaviour
         SceneFader.Instance.LoadScene(gameSceneName);
     }
 
-    public void OnOpenSettings()
+    // Botón Resume del pause menu — llama al PauseMenuController
+    // Estos métodos se asignan en el OnClick del botón dentro del prefab
+    // usando "this" (el propio MainMenuController del canvas) — no necesitan
+    // referencia externa porque usan el singleton PauseMenuController.Instance
+    public void OnResume()
     {
-        ShowSettings();
+        PauseMenuController.Instance?.Resume();
     }
 
-    public void OnOpenHowToPlay()
+    public void OnQuit()
     {
-        ShowHowToPlay();
+        PauseMenuController.Instance?.Resume();
+        SceneFader.Instance.LoadScene("MainMenu");
     }
+
+    public void OnOpenSettings() => ShowSettings();
+    public void OnOpenHowToPlay() => ShowHowToPlay();
+    public void OnBackFromSettings() => ShowMain();
+    public void OnBackFromHowToPlay() => ShowMain();
 
     public void OnExit()
     {
@@ -50,20 +53,6 @@ public class MainMenuController : MonoBehaviour
 #else
         Application.Quit();
 #endif
-    }
-
-    // -------------------------------------------------------
-    // Botones de volver
-    // -------------------------------------------------------
-
-    public void OnBackFromSettings()
-    {
-        ShowMain();
-    }
-
-    public void OnBackFromHowToPlay()
-    {
-        ShowMain();
     }
 
     // -------------------------------------------------------

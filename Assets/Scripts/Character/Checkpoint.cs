@@ -14,6 +14,10 @@ public class Checkpoint : MonoBehaviour
     [SerializeField] private Renderer visualIndicator;
     [SerializeField] private Material activatedMaterial;
 
+    [Header("Audio")]
+    [SerializeField] private AudioClip activateClip;
+    [SerializeField] private UnityEngine.Audio.AudioMixerGroup mixerGroup;
+
     public bool IsActivated { get; private set; }
 
     private void Awake()
@@ -39,6 +43,18 @@ public class Checkpoint : MonoBehaviour
 
         if (visualIndicator != null && activatedMaterial != null)
             visualIndicator.material = activatedMaterial;
+
+        if (activateClip != null)
+        {
+            GameObject go = new GameObject("CheckpointSFX");
+            go.transform.position = transform.position;
+            AudioSource src = go.AddComponent<AudioSource>();
+            src.clip            = activateClip;
+            src.outputAudioMixerGroup = mixerGroup;
+            src.spatialBlend    = 1f;
+            src.Play();
+            Destroy(go, activateClip.length);
+        }
     }
 
     private void OnDrawGizmos()

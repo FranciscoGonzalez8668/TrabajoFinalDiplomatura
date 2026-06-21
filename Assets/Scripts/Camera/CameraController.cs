@@ -2,6 +2,8 @@ using UnityEngine;
 
 public class CameraController : MonoBehaviour
 {
+    public static CameraController Instance { get; private set; }
+
     [Header("Referencias")]
     [SerializeField] private Transform target;          // CameraTarget del Player
     [SerializeField] private Transform playerBody;      // Transform del Player
@@ -15,6 +17,11 @@ public class CameraController : MonoBehaviour
     [SerializeField] private float rotationSmoothSpeed = 10f;
     [SerializeField] private float playerRotationSpeed = 10f;
 
+    [Header("Zoom (Mouse Scroll)")]
+    [SerializeField] private float minDistance = 1.5f;  // más cercano
+    [SerializeField] private float maxDistance = 10f;   // más lejano
+    [SerializeField] private float zoomSpeed = 2f;      // velocidad del zoom
+
     [Header("Colisión")]
     [SerializeField] private float collisionRadius = 0.2f;
     [SerializeField] private LayerMask collisionLayers;  // qué layers esquiva la cámara
@@ -23,19 +30,51 @@ public class CameraController : MonoBehaviour
     private float yaw;    // rotación horizontal acumulada
     private float pitch;  // rotación vertical acumulada
 
+    private void Awake()
+    {
+        Instance = this;
+    }
+
     void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
 
-        // Iniciamos con la rotación actual del player
-        yaw = playerBody.eulerAngles.y;
+        // Si las referencias no están asignadas, buscar el Player automáticamente
+        if (playerBody == null || target == null || stateMachine == null)
+            FindPlayerReferences();
+
+        if (playerBody != null)
+            yaw = playerBody.eulerAngles.y;
+    }
+
+    private void FindPlayerReferences()
+    {
+        PlayerRespawn player = FindObjectOfType<PlayerRespawn>();
+        if (player == null) return;
+
+        if (playerBody == null)   playerBody   = player.transform;
+        if (stateMachine == null) stateMachine  = player.GetComponent<PlayerStateMachine>();
+
+        // Buscar CameraTarget como hijo del player
+        if (target == null)
+        {
+            Transform camTarget = player.transform.Find("CameraTarget");
+            if (camTarget != null) target = camTarget;
+            else target = player.transform;
+        }
     }
 
     void LateUpdate()
     {
-        // LateUpdate garantiza que la cámara se mueve DESPUÉS del personaje
+        if (target == null)
+        {
+            FindPlayerReferences();
+            if (target == null) return;
+        }
+
         HandleRotation();
+        HandleZoom();
         HandlePosition();
         HandlePlayerRotation();
     }
@@ -51,6 +90,19 @@ public class CameraController : MonoBehaviour
         yaw   += mouseX;
         pitch -= mouseY;
         pitch  = Mathf.Clamp(pitch, minVerticalAngle, maxVerticalAngle);
+    }
+
+    // -------------------------------------------------------
+    // ZOOM CON SCROLL DEL MOUSE
+    // -------------------------------------------------------
+    void HandleZoom()
+    {
+        float scrollInput = Input.mouseScrollDelta.y;
+        if (Mathf.Abs(scrollInput) > 0.01f)
+        {
+            distance -= scrollInput * zoomSpeed;
+            distance = Mathf.Clamp(distance, minDistance, maxDistance);
+        }
     }
 
     // -------------------------------------------------------
@@ -155,6 +207,23 @@ public class CameraController : MonoBehaviour
                 -Mathf.Sin(yaw * Mathf.Deg2Rad)
             ).normalized;
         }
+    }
+
+    /// <summary>
+    /// Llamado por LevelManager al instanciar el player por primera vez.
+    /// Asigna las referencias sin depender de FindObjectOfType.
+    /// </summary>
+    public void InjectPlayerReferences(Transform playerTransform)
+    {
+        if (playerTransform == null) return;
+
+        playerBody   = playerTransform;
+        stateMachine = playerTransform.GetComponent<PlayerStateMachine>();
+
+        Transform camTarget = playerTransform.Find("CameraTarget");
+        target = camTarget != null ? camTarget : playerTransform;
+
+        yaw = playerBody.eulerAngles.y;
     }
 
     public void SnapToPlayerForward()

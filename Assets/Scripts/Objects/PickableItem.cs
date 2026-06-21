@@ -12,6 +12,10 @@ public class PickableItem : MonoBehaviour, IInteractable
     [SerializeField] private string itemName = "Item";
     [SerializeField] private LevelState levelState;
 
+    [Header("Audio")]
+    [SerializeField] private AudioClip pickupClip;
+    [SerializeField] private UnityEngine.Audio.AudioMixerGroup mixerGroup;
+
     [Header("UI")]
     [Tooltip("Texto del hint cuando el jugador está en rango. Ej: 'Recoger Llave'.")]
     [SerializeField] private string hintText = "Recoger";
@@ -43,9 +47,23 @@ public class PickableItem : MonoBehaviour, IInteractable
 
         levelState.PickUp(itemId);
         SetVisible(false);
+        PlaySound();
 
         string msg = string.IsNullOrEmpty(pickupMessage) ? $"{itemName} recogido" : pickupMessage;
         UIManager.Instance?.ShowNotification(msg);
+    }
+
+    private void PlaySound()
+    {
+        if (pickupClip == null) return;
+        GameObject go = new GameObject("PickupSFX");
+        go.transform.position = transform.position;
+        AudioSource src       = go.AddComponent<AudioSource>();
+        src.clip                  = pickupClip;
+        src.outputAudioMixerGroup = mixerGroup;
+        src.spatialBlend          = 1f;
+        src.Play();
+        Destroy(go, pickupClip.length);
     }
 
     private void SetVisible(bool visible)

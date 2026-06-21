@@ -55,6 +55,11 @@ public class PlayerRespawn : MonoBehaviour
         levelStartRotation = spawnRotation;
     }
 
+    private void OnEnable()
+    {
+        cameraController = CameraController.Instance;
+    }
+
     public void SetRespawnPoint(Transform newRespawnPoint)
     {
         if (newRespawnPoint == null) return;
@@ -138,7 +143,7 @@ public class PlayerRespawn : MonoBehaviour
             cameraController.SnapToPlayerForward();
 
         animator?.ResetTrigger("Death");
-        animator?.Play("Idle", 0, 0f);
+        animator?.Play("PlayerIdle", 0, 0f);
 
         IsDead         = false;
         respawnRoutine = null;
